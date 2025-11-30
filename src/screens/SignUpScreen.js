@@ -59,8 +59,14 @@ const SignUpScreen = ({ navigation }) => {
 
         // Pass the local imageUri to the signup function in AuthContext
         const result = await signup(email, password, userData, image);
-        if (!result.success) {
-            Alert.alert('ລົງທະບຽນບໍ່ສຳເລັດ', result.error);
+        
+        console.log('SignUp result:', result);
+        
+        if (result.success) {
+            console.log('Navigating to Home...');
+            navigation.navigate('Home'); // หรือ replace stack
+        } else {
+            alert('ล้มเหลว: ' + result.error);
         }
     };
 

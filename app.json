@@ -11,12 +11,20 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "sdkVersion": "54.0.0",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use your camera."
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "barStyle": "dark-content"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +32,9 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.khamsone.WPSTS",
-      "versionCode": 1
+      "versionCode": 1,
+      "statusBarBackgroundColor": "#FFFFFF",
+      "statusBarStyle": "dark"
     },
     "web": {
       "favicon": "./assets/favicon.png"

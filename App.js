@@ -4,6 +4,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ExternalWorkScreen from './src/screens/ExternalWorkScreen';
 import { ActivityIndicator, View } from 'react-native';
@@ -91,7 +93,7 @@ const AppStack = () => (
       component={DocumentDetailScreen}
       options={{
         headerShown: true,
-        title: 'เอกสาร',
+        title: 'ເຂດກິດນິມົນ',
         headerStyle: { backgroundColor: COLORS.primary },
         headerTintColor: COLORS.secondary,
         headerTitleStyle: { fontWeight: 'bold' },
@@ -102,7 +104,7 @@ const AppStack = () => (
       component={CreateDocumentScreen}
       options={{
         headerShown: true,
-        title: 'สร้าง/แก้ไขเอกสาร',
+        title: 'ສ້າງ/ແກ້ໄຂເຂດ',
         headerStyle: { backgroundColor: COLORS.primary },
         headerTintColor: COLORS.secondary,
         headerTitleStyle: { fontWeight: 'bold' },
@@ -132,10 +134,12 @@ const RootNavigator = () => {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <RootNavigator />
-      </AuthProvider>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />
+      <SafeAreaView style={{ flex: 1, paddingTop: 0 }} edges={['left', 'right', 'bottom']}>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </SafeAreaView>
     </GestureHandlerRootView>
   );
 }
- 

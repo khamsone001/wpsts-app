@@ -31,9 +31,14 @@ const HomeScreen = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    header: { backgroundColor: COLORS.primary, padding: 20, paddingTop: 30, paddingBottom: 25 },
-    headerTitle: { fontSize: 28, fontWeight: 'bold', color: COLORS.secondary, marginBottom: 5, textAlign: 'center' },
-    headerSubtitle: { fontSize: 14, color: COLORS.secondary, opacity: 0.9, textAlign: 'center' },
+    header: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: 15,
+        paddingHorizontal: 16,
+        marginBottom: 20,
+    },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.secondary, marginBottom: 5, textAlign: 'center' },
+    headerSubtitle: { fontSize: 12, color: COLORS.secondary, opacity: 0.9, textAlign: 'center' },
     optionsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 15 },
     optionCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, alignItems: 'center', width: '45%', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
     optionIcon: { fontSize: 32, marginBottom: 8 },

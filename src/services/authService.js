@@ -54,22 +54,23 @@ export const AuthService = {
             const registerData = await registerResponse.json();
             if (!registerResponse.ok) throw new Error(registerData.message || 'Signup failed');
 
-            // 2. Login immediately to get token
-            const loginResult = await AuthService.login(email, password);
-            if (!loginResult.success) {
-                throw new Error('Signup successful, but auto-login failed: ' + loginResult.error);
-            }
+            // 2. Login immediately using the data from registration
+            const data = registerData;
+
+            // Store token and user data
+            await AsyncStorage.setItem('userToken', data.token);
+            await AsyncStorage.setItem('userData', JSON.stringify(data));
 
             // 3. If there is an image, upload it and update profile
-            if (imageUri && loginResult.success) {
+            if (imageUri) {
                 try {
                     // Upload to Cloudinary
                     const uploadResult = await uploadImageAsync(imageUri);
 
                     if (uploadResult && uploadResult.url) {
                         // Update User Profile with the new photoURL
-                        const userId = loginResult.user._id;
-                        const token = loginResult.user.token; // Or get from AsyncStorage
+                        const userId = data._id;
+                        const token = data.token;
 
                         const updateResponse = await fetch(`${API_BASE_URL}/users/${userId}`, {
                             method: 'PUT',
@@ -97,12 +98,10 @@ export const AuthService = {
                     }
                 } catch (uploadError) {
                     console.error('Auto-upload profile picture failed:', uploadError);
-                    // We don't fail the whole signup process just because image upload failed
-                    // But we could return a warning if needed. For now, just return success.
                 }
             }
 
-            return loginResult;
+            return { success: true, user: { ...data, uid: data._id }, role: data.role };
 
         } catch (error) {
             return { success: false, error: error.message };

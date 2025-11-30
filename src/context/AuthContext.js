@@ -103,8 +103,38 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const signUp = async (userData) => {
+        try {
+            // 1. Register user
+            const response = await fetch('YOUR_API_URL/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData),
+            });
+
+            if (!response.ok) throw new Error('Registration failed');
+            
+            const data = await response.json();
+            console.log('Sign up response:', data);
+
+            // 2. Auto login หลังสำเร็จ
+            if (data.token || data.user) {
+                await AsyncStorage.setItem('userToken', data.token || data.user.token);
+                await AsyncStorage.setItem('userData', JSON.stringify(data.user));
+                setUser(data.user);
+                setIsLoggedIn(true);
+                console.log('Auto login success');
+            }
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Sign up error:', error);
+             return { success: false, error: error.message };
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, userRole, isLoading, login, logout, signup, updateUserProfile }}>
+        <AuthContext.Provider value={{ user, userRole, isLoading, login, logout, signup, updateUserProfile, signUp }}>
             {children}
         </AuthContext.Provider>
     );
