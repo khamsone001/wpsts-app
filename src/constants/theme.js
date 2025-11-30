@@ -8,6 +8,8 @@ export const COLORS = {
   error: '#FF0000',
   success: '#4CAF50',
   goldLight: '#F4E5B2', // Lighter gold for backgrounds/accents
+  gray: '#888888', // Gray for secondary text/icons
+  white: '#FFFFFF', // White
 };
 
 export const FONTS = {

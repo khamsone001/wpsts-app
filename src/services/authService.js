@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './apiHelper'; // Import the helper
 import { API_BASE_URL } from '../config/apiConfig';
+import { uploadImageAsync } from './uploadService';
 
 // The API_URL is now managed by apiHelper.js
 export const AuthService = {
@@ -62,9 +63,6 @@ export const AuthService = {
             // 3. If there is an image, upload it and update profile
             if (imageUri && loginResult.success) {
                 try {
-                    // Import dynamically to avoid circular dependency issues if any
-                    const { uploadImageAsync } = require('./uploadService');
-
                     // Upload to Cloudinary
                     const uploadResult = await uploadImageAsync(imageUri);
 
