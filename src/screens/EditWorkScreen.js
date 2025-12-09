@@ -16,7 +16,7 @@ const EditWorkScreen = ({ route, navigation }) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState(work.selectedUsers || []);
-    const [selectionMode, setSelectionMode] = useState('manual');
+    const [selectionMode, setSelectionMode] = useState('manual'); // Default to manual
     const [allUsers, setAllUsers] = useState([]);
     const [classFilter, setClassFilter] = useState('M');
     const [countM, setCountM] = useState('');
@@ -180,16 +180,16 @@ const EditWorkScreen = ({ route, navigation }) => {
 
                 <View style={styles.modeSelector}>
                     <TouchableOpacity
-                        style={[styles.modeButton, selectionMode === 'auto' && styles.modeButtonActive]}
-                        onPress={() => setSelectionMode('auto')}
-                    >
-                        <Text style={[styles.modeText, selectionMode === 'auto' && styles.modeTextActive]}>ອັດຕະໂນມັດ</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
                         style={[styles.modeButton, selectionMode === 'manual' && styles.modeButtonActive]}
                         onPress={() => setSelectionMode('manual')}
                     >
                         <Text style={[styles.modeText, selectionMode === 'manual' && styles.modeTextActive]}>ເລືອກເອງ</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.modeButton, selectionMode === 'auto' && styles.modeButtonActive]}
+                        onPress={() => setSelectionMode('auto')}
+                    >
+                        <Text style={[styles.modeText, selectionMode === 'auto' && styles.modeTextActive]}>ເລືອກຕາມລຳດັບ</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -218,7 +218,7 @@ const EditWorkScreen = ({ route, navigation }) => {
                             </View>
                         </View>
                         <TouchableOpacity style={styles.actionButton} onPress={handleAutoSelect}>
-                            <Text style={styles.actionButtonText}>ສຸ່ມເລືອກ</Text>
+                            <Text style={styles.actionButtonText}>ເລືອກຕາມລຳດັບ ແບບອັດຕະໂນມັດ</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (

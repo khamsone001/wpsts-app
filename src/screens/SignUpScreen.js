@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
@@ -46,7 +46,6 @@ const SignUpScreen = ({ navigation }) => {
         const history = {
             workAge: parseInt(workAge) || 0
         };
-
         const userData = {
             firstName,
             lastName,
@@ -56,17 +55,16 @@ const SignUpScreen = ({ navigation }) => {
             class: userClass,
             history
         };
-
         // Pass the local imageUri to the signup function in AuthContext
         const result = await signup(email, password, userData, image);
-        
+
         console.log('SignUp result:', result);
-        
+
         if (result.success) {
             console.log('Navigating to Home...');
-            navigation.navigate('Home'); // หรือ replace stack
+            // navigation.navigate('Home'); // RootNavigator will switch to AppStack automatically when user is set
         } else {
-            alert('ล้มเหลว: ' + result.error);
+            Alert.alert('ລົງທະບຽນລົ້ມເຫຼວ', result.error || 'ມີບາງຢ່າງຜິດພາດ');
         }
     };
 
@@ -163,6 +161,7 @@ const SignUpScreen = ({ navigation }) => {
                             value={age}
                             onChangeText={setAge}
                             keyboardType="numeric"
+                            maxLength={3}
                         />
                     </View>
                     <View style={styles.halfInput}>
@@ -173,6 +172,7 @@ const SignUpScreen = ({ navigation }) => {
                             value={workAge}
                             onChangeText={setWorkAge}
                             keyboardType="numeric"
+                            maxLength={3}
                         />
                     </View>
                 </View>

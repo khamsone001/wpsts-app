@@ -34,6 +34,7 @@ import EditWorkScreen from './src/screens/EditWorkScreen';
 import ActivitiesScreen from './src/screens/ActivitiesScreen';
 import DocumentDetailScreen from './src/screens/DocumentDetailScreen';
 import CreateDocumentScreen from './src/screens/CreateDocumentScreen';
+import ManageRoutineScreen from './src/screens/ManageRoutineScreen';
 
 const AppStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -83,6 +84,17 @@ const AppStack = () => (
       options={{
         headerShown: true,
         title: 'ກິດຈະວັດ',
+        headerStyle: { backgroundColor: COLORS.primary },
+        headerTintColor: COLORS.secondary,
+        headerTitleStyle: { fontWeight: 'bold' },
+      }}
+    />
+    <Stack.Screen
+      name="ManageRoutine"
+      component={ManageRoutineScreen}
+      options={{
+        headerShown: true,
+        title: 'ຈັດການກິດຈະວັດ',
         headerStyle: { backgroundColor: COLORS.primary },
         headerTintColor: COLORS.secondary,
         headerTitleStyle: { fontWeight: 'bold' },

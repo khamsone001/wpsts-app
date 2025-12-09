@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, FlatList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS, SIZES } from '../constants/theme';
 import * as Print from 'expo-print';
+import routineService from '../services/routineService';
 import * as Sharing from 'expo-sharing';
 import routineAttendanceService from '../services/routineAttendanceService';
 
 const AttendanceReportScreen = () => {
-    const [users, setUsers] = useState([]);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [allRoutines, setAllRoutines] = useState([]);
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -57,11 +59,18 @@ const AttendanceReportScreen = () => {
     const fetchReportData = async () => {
         setLoading(true);
         try {
-            // Fetch processed report data from the backend
-            const { users: allUsers, report: processedData } = await routineAttendanceService.getAttendanceReport(startDate, endDate);
-            
-            // Set total users (non-managers)
-            setUsers(allUsers.filter(u => u.role !== 'manager'));
+            // Fetch all data concurrently
+            const [reportResult, routinesResult] = await Promise.all([
+                routineAttendanceService.getAttendanceReport(startDate, endDate),
+                routineService.getAllRoutines() // Fetch all routines
+            ]);
+
+            const { totalUsers, report: processedData } = reportResult;
+
+            setAllRoutines(routinesResult); // Store all routines
+
+            // Set total users
+            setTotalUsers(totalUsers);
 
             // Filter and sort the report data
             const filteredData = processedData
@@ -74,6 +83,11 @@ const AttendanceReportScreen = () => {
             Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດໂຫຼດຂໍ້ມູນລາຍງານໄດ້');
         }
         setLoading(false);
+    };
+
+    const getRoutineNameById = (routineId) => {
+        const routine = allRoutines.find(r => r.id === routineId);
+        return routine ? routine.name : routineId;
     };
 
     const getDateRangeLabel = () => {
@@ -94,8 +108,6 @@ const AttendanceReportScreen = () => {
     };
 
     const generateHTMLReport = () => {
-        const routines = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-
         let detailsHTML = '';
         reportData.forEach((user, index) => {
             detailsHTML += `
@@ -105,9 +117,9 @@ const AttendanceReportScreen = () => {
                     
                     <h4>ແຍກຕາມກິດຈະວັດ:</h4>
                     <ul>
-                        ${routines.map(r =>
-                user.routineBreakdown[r] > 0
-                    ? `<li>ກິດຈະວັດ ${r}: ${user.routineBreakdown[r]} ຄັ້ງ</li>`
+                        ${Object.entries(user.routineBreakdown).map(([routineId, count]) =>
+                count > 0
+                    ? `<li>${getRoutineNameById(routineId)}: ${count} ຄັ້ງ</li>`
                     : ''
             ).join('')}
                     </ul>
@@ -125,7 +137,7 @@ const AttendanceReportScreen = () => {
                             ${user.absenceDetails.map(detail => `
                                 <tr>
                                     <td>${detail.day}</td>
-                                    <td>${detail.routine}</td>
+                                    <td>${getRoutineNameById(detail.routine)}</td>
                                     <td>${detail.note}</td>
                                 </tr>
                             `).join('')}
@@ -183,7 +195,7 @@ const AttendanceReportScreen = () => {
                 <h2>ຊ່ວງເວລາ: ${getDateRangeLabel()}</h2>
                 
                 <div class="summary">
-                    <p><strong>ຈຳນວນຜູ້ໃຊ້ທັງໝົດ:</strong> ${users.length} ອົງ/ຮູບ</p>
+                    <p><strong>ຈຳນວນຜູ້ໃຊ້ທັງໝົດ:</strong> ${totalUsers} ອົງ/ຮູບ</p>
                     <p><strong>ຈຳນວນຜູ້ທີ່ມີການຂາດ:</strong> ${reportData.length} ອົງ/ຮູບ</p>
                     <p><strong>ຈຳນວນຄັ້ງທີ່ຂາດທັງໝົດ:</strong> ${reportData.reduce((sum, u) => sum + u.totalAbsences, 0)} ຄັ້ງ</p>
                 </div>
@@ -301,16 +313,18 @@ const AttendanceReportScreen = () => {
             </View>
 
             <View style={styles.summaryCard}>
-                <Text style={styles.summaryText}>ຈຳນວນຜູ້ໃຊ້ທັງໝົດ: {users.length} ອົງ/ຮູບ</Text>
+                <Text style={styles.summaryText}>ຈຳນວນຜູ້ໃຊ້ທັງໝົດ: {totalUsers} ອົງ/ຮູບ</Text>
                 <Text style={styles.summaryText}>ຈຳນວນຜູ້ທີ່ມີການຂາດ: {reportData.length} ອົງ/ຮູບ</Text>
                 <Text style={styles.summaryText}>
                     ຈຳນວນຄັ້ງທີ່ຂາດທັງໝົດ: {reportData.reduce((sum, u) => sum + u.totalAbsences, 0)} ຄັ້ງ
                 </Text>
             </View>
 
-            <ScrollView style={styles.reportList}>
-                {reportData.map((user, index) => (
-                    <View key={user.uid} style={styles.userCard}>
+            <FlatList
+                data={reportData}
+                keyExtractor={(item) => item.uid}
+                renderItem={({ item: user, index }) => (
+                    <View style={styles.userCard}>
                         <Text style={styles.userName}>{index + 1}. {user.name}</Text>
                         <Text style={styles.totalAbsences}>ຂາດທັງໝົດ: {user.totalAbsences} ຄັ້ງ</Text>
 
@@ -318,18 +332,18 @@ const AttendanceReportScreen = () => {
                         <View style={styles.routineGrid}>
                             {Object.entries(user.routineBreakdown).map(([routine, count]) => (
                                 count > 0 && (
-                                    <View key={routine} style={styles.routineItem}>
-                                        <Text style={styles.routineText}>{routine}: {count}</Text>
+                                    <View key={routine} style={styles.routineItem} >
+                                        <Text style={styles.routineText}>{getRoutineNameById(routine)}: {count}</Text>
                                     </View>
                                 )
                             ))}
                         </View>
 
-                        <Text style={styles.sectionTitle}>ລາຍລະອຽດ:</Text>
+                        <Text style={styles.sectionTitle}>ລາຍລະອຽດການຂາດ:</Text>
                         {user.absenceDetails.map((detail, idx) => (
                             <View key={idx} style={styles.detailRow}>
                                 <Text style={styles.detailText}>
-                                    ວັນທີ {detail.day} | ກິດຈະວັດ {detail.routine}
+                                    ວັນທີ {detail.day} | {getRoutineNameById(detail.routine)}
                                 </Text>
                                 {detail.note !== '-' && (
                                     <Text style={styles.noteText}>ໝາຍເຫດ: {detail.note}</Text>
@@ -337,8 +351,12 @@ const AttendanceReportScreen = () => {
                             </View>
                         ))}
                     </View>
-                ))}
-            </ScrollView>
+                )}
+                style={styles.reportList}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={5}
+            />
 
             <View style={styles.buttonContainer}>
                 <TouchableOpacity style={styles.downloadButton} onPress={handleDownloadPDF}>

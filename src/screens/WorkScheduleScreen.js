@@ -4,6 +4,13 @@ import { COLORS, SIZES } from '../constants/theme';
 import { WorkService } from '../services/workService';
 import { useAuth } from '../context/AuthContext';
 
+const WORK_STATUSES = [
+    { value: 'Pending', label: 'ລໍດຳເນີນການ' },
+    { value: 'In Progress', label: 'ກຳລັງດຳເນີນການ' },
+    { value: 'Completed', label: 'ສຳເລັດ' },
+    { value: 'Cancelled', label: 'ຍົກເລີກ' },
+];
+
 const WorkScheduleScreen = ({ navigation }) => {
     const { user, userRole } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -23,8 +30,26 @@ const WorkScheduleScreen = ({ navigation }) => {
             return new Date(year, month - 1, day, hours, minutes);
         };
 
-        // Sort works by the nearest start date and time
-        data.sort((a, b) => parseDateTime(a.startDate, a.startTime) - parseDateTime(b.startDate, b.startTime));
+        // Custom sorting: Uncompleted tasks first, then by date.
+        data.sort((a, b) => {
+            const isACompleted = a.status === 'Completed' || a.status === 'Cancelled';
+            const isBCompleted = b.status === 'Completed' || b.status === 'Cancelled';
+
+            // If one is completed and the other is not, the non-completed one comes first.
+            if (isACompleted && !isBCompleted) {
+                return 1; // a goes after b
+            }
+            if (!isACompleted && isBCompleted) {
+                return -1; // a goes before b
+            }
+
+            // If both are completed or both are not, sort by nearest start date and time.
+            const dateA = parseDateTime(a.startDate, a.startTime);
+            const dateB = parseDateTime(b.startDate, b.startTime);
+
+            if (!dateA || !dateB) return 0; // Handle cases where date might be null
+            return dateA - dateB;
+        });
 
         setWorks(data);
         setLoading(false);
@@ -55,6 +80,11 @@ const WorkScheduleScreen = ({ navigation }) => {
             </Text>
         </TouchableOpacity>
     );
+
+    const getStatusLabel = (statusValue) => {
+        const status = WORK_STATUSES.find(s => s.value === statusValue);
+        return status ? status.label : statusValue;
+    };
 
     const getDaysRemainingString = (item) => {
         // If work is completed or cancelled, show status instead of countdown
@@ -91,7 +121,7 @@ const WorkScheduleScreen = ({ navigation }) => {
             <View style={styles.workHeader}>
                 <Text style={styles.workTitle}>{item.title}</Text>
                 <View style={[styles.statusBadge, styles[`status${item.status}`]]}>
-                    <Text style={styles.statusText}>{getDaysRemainingString(item) || item.status}</Text>
+                    <Text style={styles.statusText}>{getDaysRemainingString(item) || getStatusLabel(item.status)}</Text>
                 </View>
             </View>
             <View style={styles.workDetails}>
@@ -108,7 +138,7 @@ const WorkScheduleScreen = ({ navigation }) => {
                     <Text style={styles.value}>{item.location}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                    <Text style={styles.label}>👥 ຜູ້ໄປກິດນິມົນ:</Text>
+                    <Text style={styles.label}>👥 ອົງໄປກິດນິມົນ:</Text>
                     <Text style={styles.value}>{item.selectedUsers?.length || 0} ອົງ</Text>
                 </View>
             </View>
@@ -148,7 +178,7 @@ const WorkScheduleScreen = ({ navigation }) => {
                     {filteredWorks.map((item) => <React.Fragment key={item.id}>{renderWorkItem({ item })}</React.Fragment>)}
                 </ScrollView>
             )}
-            {(userRole === 'admin' || userRole === 'super_admin') && (
+            {(['admin', 'super_admin', 'manager'].includes(userRole)) && (
                 <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('ExternalWork')}>
                     <Text style={styles.addButtonText}>+ ເພີ່ມກິດນິມົນ</Text>
                 </TouchableOpacity>

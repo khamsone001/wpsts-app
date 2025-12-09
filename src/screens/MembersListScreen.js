@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { COLORS, SIZES } from '../constants/theme';
-import { UserService } from '../services/userService';
+import { UserService } from '../services/userService'; // Keep this for fetching
 import { useAuth } from '../context/AuthContext';
 
 const MembersListScreen = ({ navigation }) => {
-    const [loading, setLoading] = useState(true);
     const [members, setMembers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('All'); // 'All', 'M', 'N'
     const { userRole } = useAuth();
 
@@ -22,7 +22,15 @@ const MembersListScreen = ({ navigation }) => {
 
     // Separate managers and regular members
     const managers = members.filter(m => m.role === 'manager');
-    const regularMembers = members.filter(m => m.role !== 'manager');
+    const regularMembers = members.filter(m => m.role !== 'manager')
+        .sort((a, b) => {
+            // Custom sort for regular members: Class 'M' first, then by workAge descending.
+            if (a.personalInfo?.class !== b.personalInfo?.class) {
+                return a.personalInfo?.class === 'M' ? -1 : 1;
+            }
+            // If classes are the same, sort by workAge descending.
+            return (b.history?.workAge || 0) - (a.history?.workAge || 0);
+        });
 
     const filteredMembers = regularMembers.filter(member => {
         if (filter === 'All') return true;

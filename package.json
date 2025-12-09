@@ -18,6 +18,7 @@
     "@react-navigation/stack": "^6.3.29",
     "babel-preset-expo": "~54.0.0",
     "expo": "~54.0.25",
+    "expo-clipboard": "~8.0.7",
     "expo-document-picker": "~14.0.7",
     "expo-image-picker": "~17.0.8",
     "expo-print": "~15.0.7",

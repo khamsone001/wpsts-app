@@ -29,8 +29,15 @@ export const UserService = {
     getAllUsers: async () => {
         try {
             const users = await apiRequest('/users');
-            // Sort users by workAge in descending order on the client-side as a fallback
-            users.sort((a, b) => (b.history?.workAge || 0) - (a.history?.workAge || 0));
+            // Custom sort: Class 'M' first, then by workAge descending within each class.
+            users.sort((a, b) => {
+                // If classes are different, 'M' always comes before 'N'.
+                if (a.personalInfo?.class !== b.personalInfo?.class) {
+                    return a.personalInfo?.class === 'M' ? -1 : 1;
+                }
+                // If classes are the same, sort by workAge descending.
+                return (b.history?.workAge || 0) - (a.history?.workAge || 0);
+            });
             return users.map(user => ({
                 ...user,
                 uid: user._id

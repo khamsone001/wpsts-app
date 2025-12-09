@@ -101,16 +101,20 @@ const RoutineAttendanceScreen = ({ route, navigation }) => {
     };
 
     const getCurrentAttendance = () => {
-        if (isSuperAdmin && selectedAdminFilter !== 'merged') {
-            // Super Admin viewing specific admin's records
+        // For Super Admin, the picker dictates the view
+        if (isSuperAdmin) {
+            if (selectedAdminFilter === 'merged') {
+                return mergedRecords; // Show merged records
+            }
+            // Show a specific admin's records
             return adminRecords[selectedAdminFilter] || {};
-        } else if (selectedTab === 'my' && isAdmin) {
-            // Admin viewing their own records
-            return adminRecords[user.uid] || {};
-        } else {
-            // Viewing merged records
-            return mergedRecords;
         }
+
+        // For regular Admin, the tab dictates the view
+        if (isAdmin && selectedTab === 'my') return adminRecords[user.uid] || {};
+
+        // For regular users, or admins on the 'merged' tab
+        return mergedRecords;
     };
 
     const getAttendanceSummary = (userId) => {

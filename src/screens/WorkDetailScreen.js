@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Alert, Platform } from 'react-native';
 import { COLORS, SIZES } from '../constants/theme';
 import { WorkService } from '../services/workService';
 import { useAuth } from '../context/AuthContext';
+import * as Clipboard from 'expo-clipboard';
 
 const WORK_STATUSES = [
     { value: 'Pending', label: 'ລໍດຳເນີນການ' },
@@ -50,6 +51,26 @@ const WorkDetailScreen = ({ route, navigation }) => {
         navigation.navigate('EditWork', { workId, work });
     };
 
+    const handleCopy = async () => {
+        if (!work) return;
+
+        const statusLabel = WORK_STATUSES.find(s => s.value === work.status)?.label || work.status;
+        const userList = work.selectedUsers?.map(u => `- ${u.personalInfo?.name || u.email}`).join('\n') || 'ບໍ່ມີ';
+
+        const contentToCopy = `
+ຫົວຂໍ້: ${work.title}
+ສະຖານທີ່: ${work.location}
+ເວລາ: ${work.startTime} ວັນທີ: ${work.startDate}
+
+ອົງໄປກິດນິມົນ: (${work.selectedUsers?.length || 0} ອົງ):
+${userList}
+        `.trim();
+
+        await Clipboard.setStringAsync(contentToCopy);
+        Alert.alert('ສຳເລັດ', 'ຄັດລອກຂໍ້ມູນກິດນິມົນໃສ່ຄລິບບອດແລ້ວ');
+    };
+
+
     const handleDelete = () => {
         Alert.alert(
             'ລຶບກິດນິມົນ',
@@ -76,8 +97,9 @@ const WorkDetailScreen = ({ route, navigation }) => {
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
     if (!work) return <View style={styles.center}><Text>ບໍ່ພົບຂໍ້ມູນກິດນິມົນ</Text></View>;
 
-    const canEditStatus = ['super_admin', 'admin'].includes(userRole);
-    const canEditWork = userRole === 'super_admin';
+    const canManageWork = ['super_admin', 'admin', 'manager'].includes(userRole);
+    const canEditStatus = canManageWork;
+    const canEditWork = canManageWork;
     const canDeleteWork = userRole === 'super_admin' && (work.status === 'Completed' || work.status === 'Cancelled');
 
     return (
@@ -85,11 +107,16 @@ const WorkDetailScreen = ({ route, navigation }) => {
             <View style={styles.card}>
                 <View style={styles.headerRow}>
                     <Text style={styles.title}>{work.title}</Text>
-                    {canEditWork && (
-                        <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-                            <Text style={styles.editButtonText}>✏️ ແກ້ໄຂ</Text>
+                    <View style={styles.actionButtonsContainer}>
+                        <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
+                            <Text style={styles.editButtonText}>📋</Text>
                         </TouchableOpacity>
-                    )}
+                        {canEditWork && (
+                            <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                                <Text style={styles.editButtonText}>✏️</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
 
                 {canEditStatus ? (
@@ -136,7 +163,7 @@ const WorkDetailScreen = ({ route, navigation }) => {
                         <Text style={styles.value}>{work.startTime}</Text>
                     </View>
                 </View>
-                <Text style={styles.sectionHeader}>ຜູ້ຮັບຜິດຊອບ ({work.selectedUsers?.length || 0})</Text>
+                <Text style={styles.sectionHeader}>ອົງໄປກິດນິມົນ: ({work.selectedUsers?.length || 0})</Text>
                 {work.selectedUsers?.map((u, index) => (
                     <View key={index} style={styles.userItem}>
                         <Text style={styles.userName}>{u.personalInfo?.name || u.email}</Text>
@@ -176,17 +203,28 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 10,
     },
+    actionButtonsContainer: {
+        flexDirection: 'row',
+        gap: 10,
+    },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         color: COLORS.primary,
         flex: 1,
     },
-    editButton: {
-        backgroundColor: COLORS.goldLight,
-        paddingHorizontal: 15,
+    copyButton: {
+        backgroundColor: '#e0e0e0',
+        paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: SIZES.radius,
+    },
+    editButton: {
+        backgroundColor: COLORS.goldLight,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: SIZES.radius,
+        marginLeft: 'auto',
     },
     editButtonText: {
         color: COLORS.text,

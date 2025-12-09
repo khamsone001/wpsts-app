@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
                 setIsLoading(false);
             }
         };
- 
+
         checkLoginState();
     }, []);
 
@@ -54,25 +54,14 @@ export const AuthProvider = ({ children }) => {
     const signup = async (email, password, userData, localImageUri) => {
         setIsLoading(true);
         try {
-            // Step 1: Register user without photoURL
-            const signupResult = await AuthService.signup(email, password, userData, null);
+            // AuthService now handles registration, token generation, and image upload internally
+            const signupResult = await AuthService.signup(email, password, userData, localImageUri);
+
             if (!signupResult.success) {
                 throw new Error(signupResult.error || 'Signup failed');
             }
 
-            // At this point, user is created and logged in (token is stored)
-            let finalUser = signupResult.user;
-
-            // Step 2: If there's an image, upload it now that we have a token
-            if (localImageUri) {
-                const uploadResult = await uploadImageAsync(localImageUri);
-                const newPhotoURL = uploadResult.url;
-
-                // Step 3: Update the user profile with the new photoURL
-                const updateResult = await updateUserProfile({ photoURL: newPhotoURL });
-                if (updateResult.success) finalUser = updateResult.data;
-            }
-
+            const finalUser = signupResult.user;
             setUser(finalUser);
             setUserRole(finalUser.role);
             return { success: true, user: finalUser };
@@ -113,7 +102,7 @@ export const AuthProvider = ({ children }) => {
             });
 
             if (!response.ok) throw new Error('Registration failed');
-            
+
             const data = await response.json();
             console.log('Sign up response:', data);
 
@@ -125,11 +114,11 @@ export const AuthProvider = ({ children }) => {
                 setIsLoggedIn(true);
                 console.log('Auto login success');
             }
-            
+
             return { success: true };
         } catch (error) {
             console.error('Sign up error:', error);
-             return { success: false, error: error.message };
+            return { success: false, error: error.message };
         }
     };
 

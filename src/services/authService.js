@@ -69,8 +69,13 @@ export const AuthService = {
 
                     if (uploadResult && uploadResult.url) {
                         // Update User Profile with the new photoURL
-                        const userId = data._id;
+                        const userId = data._id || data.id || (data.user && data.user._id);
                         const token = data.token;
+
+                        if (!userId) {
+                            console.error('Signup success but User ID is missing for image upload.');
+                            return { success: true, user: { ...data, uid: data._id }, role: data.role };
+                        }
 
                         const updateResponse = await fetch(`${API_BASE_URL}/users/${userId}`, {
                             method: 'PUT',
