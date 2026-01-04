@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal, Image, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { COLORS, SIZES } from '../constants/theme';
 import { UserService } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
+import { uploadImageAsync } from '../services/uploadService';
 
 const UserDetailScreen = ({ route, navigation }) => {
     const { uid } = route.params;
@@ -97,6 +99,101 @@ const UserDetailScreen = ({ route, navigation }) => {
         setShowPasswordModal(true);
     };
 
+    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const [emailInput, setEmailInput] = useState('');
+
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [firstNameInput, setFirstNameInput] = useState('');
+    const [lastNameInput, setLastNameInput] = useState('');
+
+    useEffect(() => {
+        if (userProfile?.email) {
+            setEmailInput(userProfile.email);
+        }
+        if (userProfile?.personalInfo) {
+            setFirstNameInput(userProfile.personalInfo.firstName || '');
+            setLastNameInput(userProfile.personalInfo.lastName || '');
+        }
+    }, [userProfile]);
+
+    const handleUpdateName = async () => {
+        if (!firstNameInput.trim() || !lastNameInput.trim()) {
+            Alert.alert('ຜິດພາດ', 'ກະລຸນາປ້ອນຊື່ແລະນາມສະກຸນ');
+            return;
+        }
+
+        const newName = `${firstNameInput.trim()} ${lastNameInput.trim()}`;
+        const updatedPersonalInfo = {
+            ...userProfile.personalInfo,
+            firstName: firstNameInput.trim(),
+            lastName: lastNameInput.trim(),
+            name: newName
+        };
+
+        const result = await UserService.updateUserProfile(uid, { personalInfo: updatedPersonalInfo });
+        if (result.success) {
+            Alert.alert('ສຳເລັດ', 'ອັບເດດຊື່ຮຽບຮ້ອຍແລ້ວ');
+            setIsEditingName(false);
+            fetchUser();
+        } else {
+            Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບເດດຊື່ໄດ້: ' + result.error);
+        }
+    };
+
+    const handlePickImage = async () => {
+        try {
+            // Logic matched with SignUpScreen.js
+            // No permissions request is necessary for launching the image library
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images, // Reverted to match SignUpScreen exactly
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+
+            if (!result.canceled) {
+                setLoading(true);
+                const imageUri = result.assets[0].uri;
+
+                // Upload image
+                const uploadResult = await uploadImageAsync(imageUri);
+                if (uploadResult && uploadResult.url) {
+                    // Update user profile with new URL
+                    const updateResult = await UserService.updateUserProfile(uid, { photoURL: uploadResult.url });
+                    if (updateResult.success) {
+                        Alert.alert('ສຳເລັດ', 'ອັບເດດຮູບໂປຣໄຟລ໌ສຳເລັດ');
+                        fetchUser();
+                    } else {
+                        Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບເດດຮູບໂປຣໄຟລ໌ໄດ້');
+                    }
+                } else {
+                    Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບໂຫຼດຮູບພາບໄດ້');
+                }
+                setLoading(false);
+            }
+        } catch (error) {
+            console.error('PickImage Error:', error);
+            setLoading(false);
+            Alert.alert('ຜິດພາດ', 'ເກີດຂໍ້ຜິດພາດໃນການເລືອກຮູບພາບ: ' + (error.message || error));
+        }
+    };
+
+    const handleUpdateEmail = async () => {
+        if (!emailInput || !emailInput.includes('@')) {
+            Alert.alert('Error', 'Invalid email format');
+            return;
+        }
+
+        const result = await UserService.updateUserProfile(uid, { email: emailInput });
+        if (result.success) {
+            Alert.alert('Success', 'Email updated successfully');
+            setIsEditingEmail(false);
+            fetchUser();
+        } else {
+            Alert.alert('Error', 'Failed to update email: ' + result.error);
+        }
+    };
+
     const handleSetNewPassword = async () => {
         if (!newPassword || !confirmPassword) {
             return Alert.alert('ຜິດພາດ', 'ກະລຸນາປ້ອນລະຫັດຜ່ານທັງສອງຊ່ອງ');
@@ -170,23 +267,98 @@ const UserDetailScreen = ({ route, navigation }) => {
         <ScrollView style={styles.container}>
             <View style={styles.card}>
                 <View style={styles.header}>
-                    <View style={styles.avatar}>
-                        {userProfile?.photoURL ? (
-                            <Image source={{ uri: userProfile.photoURL }} style={styles.avatarImage} />
-                        ) : (
-                            <Text style={styles.avatarText}>
-                                {userProfile?.personalInfo?.name?.charAt(0) || 'U'}
-                            </Text>
-                        )}
+                    <View style={styles.avatarContainer}>
+                        <TouchableOpacity
+                            onPress={userRole === 'super_admin' ? handlePickImage : null}
+                            activeOpacity={userRole === 'super_admin' ? 0.7 : 1}
+                            style={styles.avatarTouchable}
+                        >
+                            <View style={styles.avatar}>
+                                {userProfile?.photoURL ? (
+                                    <Image source={{ uri: userProfile.photoURL }} style={styles.avatarImage} />
+                                ) : (
+                                    <Text style={styles.avatarText}>
+                                        {userProfile?.personalInfo?.name?.charAt(0) || 'U'}
+                                    </Text>
+                                )}
+                            </View>
+                            {userRole === 'super_admin' && (
+                                <View style={styles.editAvatarOverlay}>
+                                    <Text style={styles.editAvatarText}>📷</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
                     </View>
-                    <Text style={styles.name}>{userProfile?.personalInfo?.name || userProfile?.email}</Text>
+
+                    {isEditingName ? (
+                        <View style={styles.nameEditContainer}>
+                            <View style={styles.nameInputsRow}>
+                                <TextInput
+                                    style={styles.nameInput}
+                                    value={firstNameInput}
+                                    onChangeText={setFirstNameInput}
+                                    placeholder="ຊື່"
+                                    placeholderTextColor="#999"
+                                />
+                                <TextInput
+                                    style={styles.nameInput}
+                                    value={lastNameInput}
+                                    onChangeText={setLastNameInput}
+                                    placeholder="ນາມສະກຸນ"
+                                    placeholderTextColor="#999"
+                                />
+                            </View>
+                            <View style={styles.nameActionRow}>
+                                <TouchableOpacity onPress={handleUpdateName} style={styles.iconButton}>
+                                    <Text style={{ fontSize: 20 }}>💾</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setIsEditingName(false)} style={styles.iconButton}>
+                                    <Text style={{ fontSize: 20 }}>❌</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    ) : (
+                        <View style={styles.nameDisplayRow}>
+                            <Text style={styles.name}>{userProfile?.personalInfo?.name || userProfile?.email}</Text>
+                            {userRole === 'super_admin' && (
+                                <TouchableOpacity onPress={() => setIsEditingName(true)} style={styles.editIcon}>
+                                    <Text>✏️</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    )}
+
                     <Text style={styles.role}>{userProfile?.role?.toUpperCase()}</Text>
                 </View>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>ຂໍ້ມູນສ່ວນຕົວ</Text>
                     {userRole === 'super_admin' && (
-                        <Text style={styles.label}>ອີເມວ: {userProfile?.email}</Text>
+                        <View style={styles.emailContainer}>
+                            {isEditingEmail ? (
+                                <View style={styles.emailEditRow}>
+                                    <TextInput
+                                        style={styles.emailInput}
+                                        value={emailInput}
+                                        onChangeText={setEmailInput}
+                                        autoCapitalize="none"
+                                    />
+                                    <TouchableOpacity onPress={handleUpdateEmail} style={styles.iconButton}>
+                                        <Text>💾</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => setIsEditingEmail(false)} style={styles.iconButton}>
+                                        <Text>❌</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <View style={styles.emailRow}>
+                                    <Text style={styles.label}>ອີເມວ: {userProfile?.email}</Text>
+                                    <TouchableOpacity onPress={() => setIsEditingEmail(true)} style={styles.editIcon}>
+                                        <Text>✏️</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
                     )}
                     <Text style={styles.label}>Class: {userProfile?.personalInfo?.class === 'M' ? 'ພຣະ' : 'ສ.ນ'}</Text>
                     <Text style={styles.label}>ອາຍຸ: {userProfile?.personalInfo?.age || '-'}</Text>
@@ -461,6 +633,28 @@ const styles = StyleSheet.create({
         width: 80,
         marginRight: 10,
         backgroundColor: '#fff',
+        color: COLORS.text,
+    },
+    // ... (skipping unchanged styles)
+    modalInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 10,
+        fontSize: 16,
+        color: COLORS.text,
+    },
+    // ...
+    emailInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        borderRadius: 5,
+        padding: 5,
+        fontSize: 16,
+        backgroundColor: '#fff',
+        color: COLORS.text,
     },
     updateButton: {
         backgroundColor: COLORS.primary,
@@ -605,6 +799,91 @@ const styles = StyleSheet.create({
     },
     modalButtonText: {
         fontWeight: 'bold',
+        fontSize: 16,
+    },
+    emailContainer: {
+        marginBottom: 5,
+    },
+    emailRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    editIcon: {
+        marginLeft: 10,
+        padding: 5,
+    },
+    emailEditRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    emailInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        borderRadius: 5,
+        padding: 5,
+        fontSize: 16,
+        backgroundColor: '#fff',
+    },
+    iconButton: {
+        padding: 5,
+    },
+    nameDisplayRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 5,
+    },
+    nameEditContainer: {
+        alignItems: 'center',
+        marginBottom: 10,
+        width: '100%',
+    },
+    nameInputsRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        width: '100%',
+        marginBottom: 10,
+        gap: 10,
+    },
+    nameInput: {
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        borderRadius: 5,
+        padding: 8,
+        fontSize: 16,
+        backgroundColor: '#fff',
+        color: COLORS.text,
+        width: '45%',
+        textAlign: 'center',
+    },
+    nameActionRow: {
+        flexDirection: 'row',
+        gap: 20,
+    },
+    avatarContainer: {
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    avatarTouchable: {
+        position: 'relative',
+    },
+    editAvatarOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: COLORS.secondary,
+        borderRadius: 15,
+        width: 30,
+        height: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+        elevation: 2,
+    },
+    editAvatarText: {
         fontSize: 16,
     },
 });

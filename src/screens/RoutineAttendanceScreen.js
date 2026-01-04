@@ -285,15 +285,43 @@ const RoutineAttendanceScreen = ({ route, navigation }) => {
                             selectedValue={selectedAdminFilter}
                             onValueChange={(value) => setSelectedAdminFilter(value)}
                             style={styles.picker}
+                            dropdownIconColor={COLORS.text}
                         >
-                            <Picker.Item label="ການໝາຍລວມ" value="merged" />
+                            <Picker.Item label="ການໝາຍລວມ" value="merged" color={COLORS.text} />
                             {adminList.map(admin => (
                                 <Picker.Item
                                     key={admin.uid}
                                     label={admin.personalInfo?.name || admin.email}
                                     value={admin.uid}
+                                    color={COLORS.text}
                                 />
                             ))}
+                            {/* Show admins found in records but not in adminList (e.g. from bugs or deleted admins) */}
+                            {Object.keys(adminRecords).map(adminId => {
+                                const knownAdminIds = adminList.map(a => a.uid);
+                                if (!knownAdminIds.includes(adminId) && adminId !== 'undefined' && adminId !== 'null') {
+                                    return (
+                                        <Picker.Item
+                                            key={adminId}
+                                            label={`Unknown Admin (${adminId.substring(0, 6)}...)`}
+                                            value={adminId}
+                                            color={COLORS.error}
+                                        />
+                                    );
+                                }
+                                // Handle explicit string 'undefined' which caused the bug
+                                if (adminId === 'undefined') {
+                                    return (
+                                        <Picker.Item
+                                            key="undefined"
+                                            label="Unidentified Admin (Bug)"
+                                            value="undefined"
+                                            color={COLORS.error}
+                                        />
+                                    );
+                                }
+                                return null;
+                            })}
                         </Picker>
                     </View>
                 </View>
@@ -522,7 +550,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     picker: {
-        height: 50,
+        height: 55, // Increased height
     },
     gridContainer: {
         padding: 10,
@@ -741,6 +769,8 @@ const styles = StyleSheet.create({
         minHeight: 80,
         textAlignVertical: 'top',
         marginBottom: 20,
+        color: COLORS.text, // Explicitly set text color
+        backgroundColor: '#fff',
     },
     noteInputReadOnly: {
         backgroundColor: '#f5f5f5',

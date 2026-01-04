@@ -1,6 +1,8 @@
 // Centralized API Configuration
 // Production URL from Railway deployment
-export const API_BASE_URL = 'https://wpsts-backend-production.up.railway.app/api';
+//export const API_BASE_URL = 'https://wpsts-backend-production.up.railway.app/api';
+// Production URL from Render deployment
+export const API_BASE_URL = 'https://wpsts-backend.onrender.com/api';
 
 // For local development, uncomment the lines below:
 // const IP_ADDRESS = '10.33.110.72';

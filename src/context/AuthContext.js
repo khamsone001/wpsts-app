@@ -18,6 +18,10 @@ export const AuthProvider = ({ children }) => {
                 const userDataString = await AsyncStorage.getItem('userData');
                 if (userDataString) {
                     const userData = JSON.parse(userDataString);
+                    // Ensure uid is set from _id if it's missing (critical for adminId consistency)
+                    if (!userData.uid && (userData._id || userData.id)) {
+                        userData.uid = userData._id || userData.id;
+                    }
                     setUser(userData);
                     setUserRole(userData.role);
                 }

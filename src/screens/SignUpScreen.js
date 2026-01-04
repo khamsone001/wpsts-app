@@ -295,6 +295,7 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 15,
         fontSize: 16,
+        color: COLORS.text, // Explicitly set text color
     },
     passwordWrapper: {
         flexDirection: 'row',
@@ -309,6 +310,7 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 10,
         fontSize: 16,
+        color: COLORS.text, // Explicitly set text color
     },
     eyeIcon: {
         padding: 10,

@@ -178,6 +178,7 @@ const EditProfileScreen = ({ navigation }) => {
                 name: `${firstName} ${lastName}`,
                 nickname,
                 age: parseInt(age) || 0,
+                class: user.personalInfo?.class, // Preserve class
                 currentAddress: {
                     house: curHouse,
                     city: curCity,
@@ -598,6 +599,7 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 10,
         backgroundColor: '#fff',
+        color: COLORS.text, // Explicitly set text color
     },
     row: {
         flexDirection: 'row',

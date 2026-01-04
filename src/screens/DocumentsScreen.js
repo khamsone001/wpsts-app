@@ -89,39 +89,83 @@ const DocumentsScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity
-            style={styles.card}
-            onPress={() => {
-                if (item.type === 'builtin') {
-                    navigation.navigate('DocumentDetail', { document: item });
-                } else {
-                    // Open PDF file in browser
-                    const url = item.sections[0]?.content;
-                    if (url) Linking.openURL(url);
+    const handleDelete = (doc) => {
+        Alert.alert(
+            'ຢືນຢັນການລຶບ',
+            `ທ່ານຕ້ອງການລຶບເອກະສານ "${doc.title}" ຫຼືບໍ່?`,
+            [
+                { text: 'ຍົກເລີກ', style: 'cancel' },
+                {
+                    text: 'ລຶບ',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setLoading(true);
+                        const result = await documentService.deleteDocument(doc.id);
+                        if (result.success) {
+                            Alert.alert('ສຳເລັດ', 'ລຶບເອກະສານສຳເລັດ');
+                            fetchDocuments();
+                        } else {
+                            Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດລຶບເອກະສານໄດ້: ' + result.error);
+                        }
+                        setLoading(false);
+                    }
                 }
-            }}
-        >
-            <View style={styles.iconPlaceholder}>
-                <Text style={styles.iconText}>{item.type === 'builtin' ? '📄' : '📎'}</Text>
-            </View>
-            <View style={styles.info}>
-                <Text style={styles.title}>{item.title}</Text>
-                <View style={styles.metaRow}>
-                    {item.size && <Text style={styles.size}>{item.size}</Text>}
-                    <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>
-                            {categories.find(c => c.id === item.category)?.name || item.category}
-                        </Text>
-                    </View>
-                    {item.type === 'builtin' && (
-                        <View style={styles.builtinBadge}>
-                            <Text style={styles.builtinBadgeText}>ເອກະສານໃນລະບົບ</Text>
-                        </View>
-                    )}
+            ]
+        );
+    };
+
+    const renderItem = ({ item }) => (
+        <View style={styles.cardWrapper}>
+            <TouchableOpacity
+                style={styles.card}
+                onPress={() => {
+                    if (item.type === 'builtin') {
+                        navigation.navigate('DocumentDetail', { document: item });
+                    } else {
+                        // Open PDF file in browser
+                        const url = item.sections[0]?.content;
+                        if (url) Linking.openURL(url);
+                    }
+                }}
+            >
+                <View style={styles.iconPlaceholder}>
+                    <Text style={styles.iconText}>{item.type === 'builtin' ? '📄' : '📎'}</Text>
                 </View>
-            </View>
-        </TouchableOpacity>
+                <View style={styles.info}>
+                    <Text style={styles.title}>{item.title}</Text>
+                    <View style={styles.metaRow}>
+                        {item.size && <Text style={styles.size}>{item.size}</Text>}
+                        <View style={styles.categoryBadge}>
+                            <Text style={styles.categoryBadgeText}>
+                                {categories.find(c => c.id === item.category)?.name || item.category}
+                            </Text>
+                        </View>
+                        {item.type === 'builtin' && (
+                            <View style={styles.builtinBadge}>
+                                <Text style={styles.builtinBadgeText}>ເອກະສານໃນລະບົບ</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
+
+            {canCreateDocument && (
+                <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => navigation.navigate('CreateDocument', { document: item })}
+                    >
+                        <Text style={styles.actionButtonText}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => handleDelete(item)}
+                    >
+                        <Text style={styles.actionButtonText}>🗑️</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+        </View>
     );
 
     return (
@@ -234,14 +278,37 @@ const styles = StyleSheet.create({
     list: {
         paddingBottom: 20,
     },
+    cardWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
     card: {
+        flex: 1,
         flexDirection: 'row',
         backgroundColor: COLORS.secondary,
         padding: 15,
         borderRadius: SIZES.radius,
-        marginBottom: 10,
         elevation: 2,
         alignItems: 'center',
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        marginLeft: 10,
+    },
+    editButton: {
+        backgroundColor: '#FFC107',
+        padding: 10,
+        borderRadius: 8,
+        marginRight: 5,
+    },
+    deleteButton: {
+        backgroundColor: '#F44336',
+        padding: 10,
+        borderRadius: 8,
+    },
+    actionButtonText: {
+        fontSize: 16,
     },
     iconPlaceholder: {
         width: 50,

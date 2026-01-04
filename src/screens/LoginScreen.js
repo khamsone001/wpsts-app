@@ -45,7 +45,7 @@ const LoginScreen = ({ navigation }) => {
     }
     try {
       await login(identifier, password);
-      
+
       // Handle Remember Me
       if (rememberMe) {
         await AsyncStorage.setItem('login_identifier', identifier);
@@ -102,14 +102,14 @@ const LoginScreen = ({ navigation }) => {
       </View>
 
       {/* Remember Me Checkbox */}
-      <TouchableOpacity 
-        style={styles.rememberMeContainer} 
+      <TouchableOpacity
+        style={styles.rememberMeContainer}
         onPress={() => setRememberMe(!rememberMe)}
       >
-        <Ionicons 
-          name={rememberMe ? 'checkbox' : 'square-outline'} 
-          size={24} 
-          color={COLORS.primary} 
+        <Ionicons
+          name={rememberMe ? 'checkbox' : 'square-outline'}
+          size={24}
+          color={COLORS.primary}
         />
         <Text style={styles.rememberMeText}>ຈົດຈຳຂ້ອຍໄວ້</Text>
       </TouchableOpacity>
@@ -168,6 +168,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radius,
     paddingHorizontal: SIZES.padding,
     backgroundColor: COLORS.white,
+    color: COLORS.text, // Explicitly set text color
   },
   passwordWrapper: {
     flexDirection: 'row',
@@ -183,6 +184,7 @@ const styles = StyleSheet.create({
     height: 50,
     ...FONTS.body3,
     fontSize: 16,
+    color: COLORS.text, // Explicitly set text color
   },
   eyeIcon: {
     padding: SIZES.base,
