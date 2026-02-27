@@ -11,6 +11,8 @@ import ExternalWorkScreen from './src/screens/ExternalWorkScreen';
 import { ActivityIndicator, View } from 'react-native';
 import { COLORS } from './src/constants/theme';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { OfflineManager } from './src/services/offlineManager';
+import { apiRequest } from './src/services/apiHelper';
 
 const Stack = createStackNavigator();
 
@@ -144,6 +146,18 @@ const RootNavigator = () => {
 };
 
 export default function App() {
+  React.useEffect(() => {
+    // Attempt to sync offline queue on startup
+    const initSync = async () => {
+      try {
+        await OfflineManager.syncQueue(apiRequest);
+      } catch (e) {
+        console.error('App-level sync failed:', e);
+      }
+    };
+    initSync();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent={false} />

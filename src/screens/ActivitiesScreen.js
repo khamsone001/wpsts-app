@@ -20,17 +20,17 @@ const ActivitiesScreen = ({ navigation }) => {
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
-            fetchRoutines();
+            fetchRoutines(false); // Silent refresh on focus
         });
         return unsubscribe;
     }, [navigation]);
 
-    const fetchRoutines = async () => {
-        setLoading(true);
+    const fetchRoutines = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         const allRoutines = await routineService.getAllRoutines();
         setMainRoutines(allRoutines.filter(r => r.type === 'main').sort((a, b) => a.order - b.order));
         setSubRoutines(allRoutines.filter(r => r.type === 'sub').sort((a, b) => a.order - b.order));
-        setLoading(false);
+        if (showLoading) setLoading(false);
     };
 
     const handleDeleteRoutine = async (routine) => {
@@ -58,6 +58,26 @@ const ActivitiesScreen = ({ navigation }) => {
 
     const canManageAttendance = ['super_admin', 'admin'].includes(userRole);
     const currentRoutines = selectedTab === 'main' ? mainRoutines : subRoutines;
+
+    const getRoutineIcon = (title, index) => {
+        const t = title?.toLowerCase() || '';
+        // Priority 1: Positional Defaults for first 4 items
+        if (index === 0) return '🥣';
+        if (index === 1) return '🧘‍♂️';
+        if (index === 2) return '🧘‍♂️';
+        if (index === 3) return '🧹';
+
+        // Priority 2: Keyword based matching
+        if (t.includes('เช้า') || t.includes('morning')) return '🌅';
+        if (t.includes('เย็น') || t.includes('evening')) return '🌇';
+        if (t.includes('บิณฑบาต') || t.includes('เดิน')) return '🥣';
+        if (t.includes('สวด') || t.includes('ธรรม')) return '📖';
+        if (t.includes('เพล') || t.includes('กิน') || t.includes('ฉัน')) return '🍽️';
+        if (t.includes('กวาด') || t.includes('สะอาด')) return '🧹';
+        if (t.includes('สมาธิ') || t.includes('นั่ง')) return '🧘‍♂️';
+        if (t.includes('เรียน') || t.includes('บาลี')) return '🎓';
+        return '🕉️';
+    };
 
     return (
         <View style={styles.container}>
@@ -114,7 +134,7 @@ const ActivitiesScreen = ({ navigation }) => {
                             )}
                         </View>
 
-                        {currentRoutines.map(routine => (
+                        {currentRoutines.map((routine, index) => (
                             <View key={routine.id} style={styles.cardWrapper}>
                                 <TouchableOpacity
                                     style={styles.card}
@@ -124,7 +144,10 @@ const ActivitiesScreen = ({ navigation }) => {
                                         routineDesc: routine.description
                                     })}
                                 >
-                                    <Text style={styles.routineName}>{routine.name}</Text>
+                                    <View style={styles.cardHeader}>
+                                        <Text style={styles.routineName}>{routine.name}</Text>
+                                        <Text style={styles.iconText}>{getRoutineIcon(routine.name, index)}</Text>
+                                    </View>
                                     <Text style={styles.routineDesc}>{routine.description}</Text>
                                     <Text style={styles.tapHint}>ກົດເພື່ອເຂົ້າເບິ່ງລາຍລະອຽດ →</Text>
                                 </TouchableOpacity>
@@ -229,6 +252,15 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: SIZES.radius,
         elevation: 3,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    iconText: {
+        fontSize: 22,
     },
     routineName: {
         fontSize: 18,

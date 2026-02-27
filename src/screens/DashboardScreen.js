@@ -9,7 +9,7 @@ const DashboardScreen = ({ navigation }) => {
     const menuOptions = [
         {
             id: 'workSchedule',
-            title: 'ตารางงาน',
+            title: 'ຕາຕະລາງ',
             subtitle: 'Work Schedule',
             icon: '📅',
             onPress: () => navigation.navigate('WorkSchedule'),
@@ -17,7 +17,7 @@ const DashboardScreen = ({ navigation }) => {
         },
         {
             id: 'members',
-            title: 'สมาชิกทั้งหมด',
+            title: 'ສະມາຊິກທັງໝົດ',
             subtitle: 'All Members',
             icon: '👥',
             onPress: () => navigation.navigate('MembersList'),
@@ -33,7 +33,7 @@ const DashboardScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.content}>
-                <Text style={styles.sectionTitle}>เมนูหลัก</Text>
+                <Text style={styles.sectionTitle}>ເມນູຫຼັກ</Text>
 
                 <View style={styles.menuGrid}>
                     {menuOptions.map((option) => (

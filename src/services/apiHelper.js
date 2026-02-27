@@ -1,9 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../config/apiConfig';
+import { getActiveServer, resetActiveServer } from '../config/apiConfig';
+import { OfflineManager } from './offlineManager';
 
-export const apiRequest = async (endpoint, method = 'GET', body = null) => {
-    // DIAGNOSTIC LOG: Check what URL is actually being used
-    console.log(`[API Debug] Requesting: ${API_BASE_URL}${endpoint}`);
+export const apiRequest = async (endpoint, method = 'GET', body = null, skipQueue = false) => {
+    // 1. Check for cached data first if it's a GET request
+    if (method === 'GET') {
+        const cached = await OfflineManager.getCachedData(endpoint);
+        // If we want to return cache immediately while fetching (SWR pattern), we'd need a callback.
+        // For now, we only use cache if fetch fails.
+    }
 
     const token = await AsyncStorage.getItem('userToken');
     const headers = {
@@ -23,48 +28,73 @@ export const apiRequest = async (endpoint, method = 'GET', body = null) => {
         config.body = JSON.stringify(body);
     }
 
+    // Trigger sync in background if online (don't await to avoid blocking)
+    if (!skipQueue) {
+        OfflineManager.syncQueue(apiRequest).catch(console.error);
+    }
+
     // Retry configuration
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 1; // Lower retries when using offline logic to fail faster to offline mode
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
-        // Add timeout for Render Free Tier (may take 60s to wake up)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                ...config,
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
+            const API_BASE_URL = await getActiveServer();
+            console.log(`[API] Fetching: ${endpoint}`);
 
-            const data = await response.json();
+            const fetchPromise = fetch(`${API_BASE_URL}${endpoint}`, config);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request Timeout')), 8000) // Lower timeout for better UX
+            );
+
+            const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+            // Handle non-JSON responses (like Railway/Render HTML error pages)
+            const contentType = response.headers.get('content-type');
+            let data;
+
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                // If it's not JSON, it might be an HTML error page
+                const text = await response.text();
+                console.log(`[API] Non-JSON response received: ${text.substring(0, 100)}...`);
+                throw new Error(`Server Error (${response.status}): ระบบขัดข้องกรุณาลองใหม่ภายหลัง`);
+            }
 
             if (!response.ok) {
                 throw new Error(data.message || 'An API error occurred');
             }
 
-            return data;
-        } catch (error) {
-            clearTimeout(timeoutId);
-            attempts++;
-
-            const isNetworkError = error.message.includes('Network request failed') || error.name === 'AbortError';
-
-            // Only retry if it's a network/timeout error and we have retries left
-            if (isNetworkError && attempts < MAX_RETRIES) {
-                console.log(`Attempt ${attempts} failed. Retrying in ${attempts * 2}s...`);
-                // Wait before retrying (exponential backoff: 2s, 4s...)
-                await new Promise(resolve => setTimeout(resolve, attempts * 2000));
-                continue;
+            // If GET, update cache
+            if (method === 'GET') {
+                await OfflineManager.cacheData(endpoint, data);
             }
 
-            // If it's the last attempt or not a retryable error, throw it
+            return data;
+        } catch (error) {
+            attempts++;
+            console.log(`[API] Attempt ${attempts} failed for ${endpoint}:`, error.message);
+
+            // If it's the last attempt and it failed
             if (attempts === MAX_RETRIES) {
-                console.error(`API Error on ${method} ${endpoint} after ${MAX_RETRIES} attempts:`, error);
-            } else {
-                console.error(`API Error on ${method} ${endpoint}:`, error);
+                // HANDLE OFFLINE
+                if (method === 'GET') {
+                    const cachedData = await OfflineManager.getCachedData(endpoint);
+                    if (cachedData) {
+                        console.log(`[Offline] Returning cached data for ${endpoint}`);
+                        return cachedData;
+                    }
+                } else if (!skipQueue) {
+                    // Save mutation to queue
+                    await OfflineManager.saveToQueue({ endpoint, method, body });
+                    return { success: true, offline: true, message: 'บันทึกข้อมูลในเครื่องแล้ว (จะอัปโหลดเมื่อออนไลน์)' };
+                }
+            }
+
+            if (attempts < MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
             }
 
             throw error;

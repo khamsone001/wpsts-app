@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './apiHelper'; // Import the helper
-import { API_BASE_URL } from '../config/apiConfig';
+import { getActiveServer } from '../config/apiConfig';
 import { uploadImageAsync } from './uploadService';
 
 // The API_URL is now managed by apiHelper.js
 export const AuthService = {
     login: async (identifier, password) => {
         try {
-            // Use apiRequest for consistency, but handle response differently for login
-            const response = await fetch(`${API_BASE_URL}/users/login`, { // Keep full fetch here for now to avoid circular dependency issues if apiHelper needs auth
+            const API_URL = await getActiveServer();
+            const response = await fetch(`${API_URL}/users/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, password }),
@@ -45,7 +45,8 @@ export const AuthService = {
             };
 
             // 1. Register
-            const registerResponse = await fetch(`${API_BASE_URL}/users/register`, {
+            const API_URL = await getActiveServer();
+            const registerResponse = await fetch(`${API_URL}/users/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody),
@@ -77,7 +78,7 @@ export const AuthService = {
                             return { success: true, user: { ...data, uid: data._id }, role: data.role };
                         }
 
-                        const updateResponse = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                        const updateResponse = await fetch(`${API_URL}/users/${userId}`, {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',

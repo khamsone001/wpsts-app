@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './apiHelper'; // Import the helper
-import { API_BASE_URL } from '../config/apiConfig';
+import { getActiveServer } from '../config/apiConfig';
 
 // The API_BASE_URL is now managed by apiHelper.js
 export const uploadImageAsync = async (uri) => {
@@ -8,7 +8,8 @@ export const uploadImageAsync = async (uri) => {
     if (!token) {
         throw new Error('No user token found. Please log in.');
     }
-    const apiUrl = `${API_BASE_URL}/upload`; // Use full URL for FormData fetch
+    const API_URL = await getActiveServer();
+    const apiUrl = `${API_URL}/upload`;
 
     const uriParts = uri.split('.');
     const fileType = uriParts[uriParts.length - 1];
@@ -42,7 +43,8 @@ export const uploadPdfAsync = async (uri, name) => {
     if (!token) {
         throw new Error('No user token found. Please log in.');
     }
-    const apiUrl = `${API_BASE_URL}/upload/pdf`; // Use full URL for FormData fetch
+    const API_URL = await getActiveServer();
+    const apiUrl = `${API_URL}/upload/pdf`;
 
     const formData = new FormData();
     formData.append('pdf', {
