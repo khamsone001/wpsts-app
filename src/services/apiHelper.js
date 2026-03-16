@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getActiveServer, resetActiveServer } from '../config/apiConfig';
+import { getActiveServer, getFullUrl, USE_PROXY, resetActiveServer } from '../config/apiConfig';
 import { OfflineManager } from './offlineManager';
 
 export const apiRequest = async (endpoint, method = 'GET', body = null, skipQueue = false) => {
@@ -34,32 +34,45 @@ export const apiRequest = async (endpoint, method = 'GET', body = null, skipQueu
     }
 
     // Retry configuration
-    const MAX_RETRIES = 1; // Lower retries when using offline logic to fail faster to offline mode
+    const MAX_RETRIES = 3; // Reduced for Vercel, which has faster cold starts
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
         try {
             const API_BASE_URL = await getActiveServer();
-            console.log(`[API] Fetching: ${endpoint}`);
+            const fullUrl = getFullUrl(endpoint, API_BASE_URL);
+            console.log(`[API] Fetching: ${fullUrl} (${method})${USE_PROXY ? ' [PROXY]' : ''}`);
 
-            const fetchPromise = fetch(`${API_BASE_URL}${endpoint}`, config);
+            const fetchPromise = fetch(fullUrl, config);
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Request Timeout')), 8000) // Lower timeout for better UX
+                setTimeout(() => reject(new Error('Server responding with timeout (starting)')), 45000) // 45s timeout for Render cold start
             );
 
             const response = await Promise.race([fetchPromise, timeoutPromise]);
 
-            // Handle non-JSON responses (like Railway/Render HTML error pages)
-            const contentType = response.headers.get('content-type');
             let data;
 
-            if (contentType && contentType.includes('application/json')) {
-                data = await response.json();
-            } else {
-                // If it's not JSON, it might be an HTML error page
+            // Handle proxy response (allorigins wraps the response)
+            if (USE_PROXY) {
                 const text = await response.text();
-                console.log(`[API] Non-JSON response received: ${text.substring(0, 100)}...`);
-                throw new Error(`Server Error (${response.status}): ระบบขัดข้องกรุณาลองใหม่ภายหลัง`);
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.log(`[API] Proxy returned non-JSON: ${text.substring(0, 100)}...`);
+                    throw new Error(`Server Error: ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้`);
+                }
+            } else {
+                // Handle non-JSON responses (like Railway/Render HTML error pages)
+                const contentType = response.headers.get('content-type');
+
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // If it's not JSON, it might be an HTML error page
+                    const text = await response.text();
+                    console.log(`[API] Non-JSON response received: ${text.substring(0, 100)}...`);
+                    throw new Error(`Server Error (${response.status}): ระบบขัดข้องกรุณาลองใหม่ภายหลัง`);
+                }
             }
 
             if (!response.ok) {
@@ -93,7 +106,11 @@ export const apiRequest = async (endpoint, method = 'GET', body = null, skipQueu
             }
 
             if (attempts < MAX_RETRIES) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Wait longer if network request failed (likely OkHttp 10s timeout while server sleeps)
+                const isNetworkError = error.message.includes('Network request failed') || error.message.includes('fetch');
+                const delayMs = isNetworkError ? 3000 : 1000;
+                console.log(`[API] Waiting ${delayMs}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
                 continue;
             }
 
