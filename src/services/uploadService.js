@@ -52,7 +52,7 @@ export const uploadImageAsync = async (uri) => {
         
         // Read as base64
         const base64Data = await FileSystem.readAsStringAsync(tempUri, {
-            encoding: FileSystem.EncodingType.Base64,
+            encoding: 'base64',
         });
         bytes = decodeBase64(base64Data);
 
@@ -86,8 +86,8 @@ export const uploadPdfAsync = async (uri, name) => {
         const tempUri = FileSystem.cacheDirectory + `upload_${Date.now()}.pdf`;
         await FileSystem.copyAsync({ from: uri, to: tempUri });
         
-        const base64Data = await FileSystem.readAsStringAsync(tempUri, {
-            encoding: FileSystem.EncodingType.Base64,
+const base64Data = await FileSystem.readAsStringAsync(tempUri, {
+            encoding: 'base64',
         });
         const bytes = decodeBase64(base64Data);
 
