@@ -19,12 +19,14 @@ export const UserService = {
         }
     },
 
-    getUserProfile: async (id) => {
+    getUserProfile: async (id, fresh = false) => {
         try {
             if (!id) {
                 console.warn("getUserProfile called with no ID.");
                 return null;
             }
+            
+            // Always get fresh data by doing a fresh query
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -32,11 +34,17 @@ export const UserService = {
                 .single();
             
             if (error) throw error;
+            
+            // Normalize the data for frontend
             const normalized = normalizeUserData(data);
             return { ...normalized, uid: data.id };
         } catch (error) {
             console.error('Error fetching user profile:', error);
             throw error;
+        }
+    },
+        }
+    },
         }
     },
 
