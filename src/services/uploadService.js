@@ -1,5 +1,4 @@
 import { supabase } from '../config/supabaseClient';
-import * as FileSystem from 'expo-file-system';
 
 export const uploadImageAsync = async (uri) => {
     try {
@@ -7,22 +6,15 @@ export const uploadImageAsync = async (uri) => {
         const fileType = uriParts[uriParts.length - 1];
         const fileName = `${Date.now()}.${fileType}`;
 
-        // For React Native, use FileSystem to read as base64
-        const base64Data = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-
-        // Convert base64 to binary
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
+        // For React Native/Expo, use fetch to get blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
-            .upload(`images/${fileName}`, bytes, {
+            .upload(`images/${fileName}`, blob, {
                 contentType: `image/${fileType}`,
+                upsert: true,
             });
 
         if (error) {
@@ -45,20 +37,14 @@ export const uploadPdfAsync = async (uri, name) => {
     try {
         const fileName = `${Date.now()}_${name}`;
 
-        const base64Data = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
+        const response = await fetch(uri);
+        const blob = await response.blob();
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
-            .upload(`pdfs/${fileName}`, bytes, {
+            .upload(`pdfs/${fileName}`, blob, {
                 contentType: 'application/pdf',
+                upsert: true,
             });
 
         if (error) {
