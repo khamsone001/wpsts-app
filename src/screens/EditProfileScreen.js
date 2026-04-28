@@ -82,42 +82,73 @@ const EditProfileScreen = ({ navigation }) => {
 
     useEffect(() => {
         if (user) {
-            // Load General
-            setFirstName(user.personalInfo?.firstName || user.personalInfo?.name?.split(' ')[0] || '');
-            setLastName(user.personalInfo?.lastName || user.personalInfo?.name?.split(' ').slice(1).join(' ') || '');
-            setNickname(user.personalInfo?.nickname || '');
-            setAge(user.personalInfo?.age?.toString() || '');
-            setWorkAge(user.history?.workAge?.toString() || '');
-            setImageUri(user.photoURL || null);
+            // Load General - support both flat (Supabase) and nested (MongoDB)
+            setFirstName(user.first_name || user.personalInfo?.firstName || user.personalInfo?.name?.split(' ')[0] || '');
+            setLastName(user.last_name || user.personalInfo?.lastName || user.personalInfo?.name?.split(' ').slice(1).join(' ') || '');
+            setNickname(user.nickname || user.personalInfo?.nickname || '');
+            setAge((user.age || user.personalInfo?.age || '').toString());
+            setWorkAge((user.work_age || user.history?.workAge || '').toString());
+            setImageUri(user.photo_url || user.photoURL || null);
 
             // Load Current Address
-            setCurHouse(user.personalInfo?.currentAddress?.house || '');
-            setCurCity(user.personalInfo?.currentAddress?.city || '');
-            setCurDistrict(user.personalInfo?.currentAddress?.district || '');
+            setCurHouse(user.address_house || user.personalInfo?.currentAddress?.house || '');
+            setCurCity(user.address_city || user.personalInfo?.currentAddress?.city || '');
+            setCurDistrict(user.address_district || user.personalInfo?.currentAddress?.district || '');
 
             // Load Personal History
-            if (user.history?.birthDate) setBirthDate(new Date(user.history.birthDate));
-            setPobHouse(user.history?.placeOfBirth?.house || '');
-            setPobCity(user.history?.placeOfBirth?.city || '');
-            setPobDistrict(user.history?.placeOfBirth?.district || '');
-            setRace(user.history?.race || '');
-            setNationality(user.history?.nationality || '');
-            setTribe(user.history?.tribe || '');
-            setEducation(user.history?.education || '');
+            const birthDateStr = user.birth_date || user.history?.birthDate;
+            if (birthDateStr) setBirthDate(new Date(birthDateStr));
+            setPobHouse(user.birth_place_house || user.history?.placeOfBirth?.house || '');
+            setPobCity(user.birth_place_city || user.history?.placeOfBirth?.city || '');
+            setPobDistrict(user.birth_place_district || user.history?.placeOfBirth?.district || '');
+            setRace(user.race || user.history?.race || '');
+            setNationality(user.nationality || user.history?.nationality || '');
+            setTribe(user.tribe || user.history?.tribe || '');
+            setEducation(user.education || user.history?.education || '');
 
             // Load Father Info
-            setFatherFirstName(user.family?.father?.firstName || '');
-            setFatherLastName(user.family?.father?.lastName || '');
-            setFatherAge(user.family?.father?.age?.toString() || '');
-            setFatherPobHouse(user.family?.father?.placeOfBirth?.house || '');
-            setFatherPobCity(user.family?.father?.placeOfBirth?.city || '');
-            setFatherPobDistrict(user.family?.father?.placeOfBirth?.district || '');
-            setFatherCurHouse(user.family?.father?.currentAddress?.house || '');
-            setFatherCurCity(user.family?.father?.currentAddress?.city || '');
-            setFatherCurDistrict(user.family?.father?.currentAddress?.district || '');
+            setFatherFirstName(user.father_first_name || user.family?.father?.firstName || '');
+            setFatherLastName(user.father_last_name || user.family?.father?.lastName || '');
+            setFatherAge((user.father_age || user.family?.father?.age || '').toString());
+            setFatherPobHouse(user.father_place_birth_house || user.family?.father?.placeOfBirth?.house || '');
+            setFatherPobCity(user.father_place_birth_city || user.family?.father?.placeOfBirth?.city || '');
+            setFatherPobDistrict(user.father_place_birth_district || user.family?.father?.placeOfBirth?.district || '');
+            setFatherCurHouse(user.father_current_address_house || user.family?.father?.currentAddress?.house || '');
+            setFatherCurCity(user.father_current_address_city || user.family?.father?.currentAddress?.city || '');
+            setFatherCurDistrict(user.father_current_address_district || user.family?.father?.currentAddress?.district || '');
 
             // Load Mother Info
-            setMotherFirstName(user.family?.mother?.firstName || '');
+            setMotherFirstName(user.mother_first_name || user.family?.mother?.firstName || '');
+            setMotherLastName(user.mother_last_name || user.family?.mother?.lastName || '');
+            setMotherAge((user.mother_age || user.family?.mother?.age || '').toString());
+            setMotherPobHouse(user.mother_place_birth_house || user.family?.mother?.placeOfBirth?.house || '');
+            setMotherPobCity(user.mother_place_birth_city || user.family?.mother?.placeOfBirth?.city || '');
+            setMotherPobDistrict(user.mother_place_birth_district || user.family?.mother?.placeOfBirth?.district || '');
+            setMotherCurHouse(user.mother_current_address_house || user.family?.mother?.currentAddress?.house || '');
+            setMotherCurCity(user.mother_current_address_city || user.family?.mother?.currentAddress?.city || '');
+            setMotherCurDistrict(user.mother_current_address_district || user.family?.mother?.currentAddress?.district || '');
+
+            // Load Class N
+            const nEntryDateStr = user.class_n_entry_date || user.history?.classN?.entryDate;
+            if (nEntryDateStr) setNEntryDate(new Date(nEntryDateStr));
+            setNHouse(user.class_n_location_house || user.history?.classN?.location?.house || '');
+            setNCity(user.class_n_location_city || user.history?.classN?.location?.city || '');
+            setNDistrict(user.class_n_location_district || user.history?.classN?.location?.district || '');
+            setNIssuer(user.class_n_issuer_name || user.history?.classN?.issuerName || '');
+            setNIdCard(user.class_n_id_card || user.history?.classN?.idCard || '');
+            setNTotalWorkAge((user.class_n_total_work_age || user.history?.classN?.totalWorkAge || '').toString());
+
+            // Load Class M
+            const mEntryDateStr = user.class_m_entry_date || user.history?.classM?.entryDate;
+            if (mEntryDateStr) setMEntryDate(new Date(mEntryDateStr));
+            setMHouse(user.class_m_location_house || user.history?.classM?.location?.house || '');
+            setMCity(user.class_m_location_city || user.history?.classM?.location?.city || '');
+            setMDistrict(user.class_m_location_district || user.history?.classM?.location?.district || '');
+            setMIssuer(user.class_m_issuer_name || user.history?.classM?.issuerName || '');
+            setMIdCard(user.class_m_id_card || user.history?.classM?.idCard || '');
+            setMTotalWorkAge((user.class_m_total_work_age || user.history?.classM?.totalWorkAge || '').toString());
+        }
+    }, [user]);
             setMotherLastName(user.family?.mother?.lastName || '');
             setMotherAge(user.family?.mother?.age?.toString() || '');
             setMotherPobHouse(user.family?.mother?.placeOfBirth?.house || '');
@@ -154,10 +185,10 @@ const EditProfileScreen = ({ navigation }) => {
     const handleSave = async () => {
         setLoading(true);
 
-        let finalImageUri = user.photoURL; // Start with the existing URL
+        let finalImageUri = user.photo_url || user.photoURL; // Start with existing URL
 
         // Check if a new image was selected (imageUri will be a local file path)
-        if (imageUri && imageUri !== user.photoURL) {
+        if (imageUri && imageUri !== (user.photo_url || user.photoURL)) {
             try {
                 const uploadResult = await uploadImageAsync(imageUri);
                 finalImageUri = uploadResult.url;
@@ -204,7 +235,7 @@ const EditProfileScreen = ({ navigation }) => {
                     idCard: nIdCard,
                     totalWorkAge: parseInt(nTotalWorkAge) || 0
                 },
-                classM: user.personalInfo?.class === 'M' ? {
+                classM: user.class === 'M' ? {
                     entryDate: mEntryDate.toISOString(),
                     location: { house: mHouse, city: mCity, district: mDistrict },
                     issuerName: mIssuer,
@@ -493,7 +524,7 @@ const EditProfileScreen = ({ navigation }) => {
                 </View>
 
                 {/* --- Class M History (Conditional) --- */}
-                {user?.personalInfo?.class === 'M' && (
+                {user?.class === 'M' && (
                     <>
                         <Text style={styles.sectionHeader}>5. ບັນພະຊາເປັນພະພິກຂຸ</Text>
                         <Text style={styles.label}>ບວດເມື່ອວັນທີ່</Text>
