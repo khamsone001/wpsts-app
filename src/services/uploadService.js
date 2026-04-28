@@ -6,15 +6,30 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Decode base64 to Uint8Array manually
-function decodeBase64(base64) {
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+// Convert base64 string to Uint8Array using pure JS (no atob)
+function base64ToBytes(base64) {
+    const OUTPUT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let input = base64.replace(/^data:[^;]+;base64,/, '');
+    
+    const result = [];
+    let value = 0;
+    let bits = 0;
+    
+    for (let i = 0; i < input.length; i++) {
+        if (input[i] === '=') break;
+        const idx = OUTPUT.indexOf(input[i]);
+        if (idx === -1) continue;
+        
+        value = (value << 6) | idx;
+        bits += 6;
+        
+        if (bits >= 8) {
+            bits -= 8;
+            result.push((value >> bits) & 0xFF);
+        }
     }
-    return bytes;
+    
+    return new Uint8Array(result);
 }
 
 export const uploadImageAsync = async (uri) => {
@@ -27,17 +42,17 @@ export const uploadImageAsync = async (uri) => {
         
         const fileName = `images/${Date.now()}.${fileExt}`;
 
-        // Read as base64 string
+        // Read file as base64 using expo-file-system
         const base64String = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType.Base64,
         });
 
-        // Decode base64 to bytes
-        const uint8Array = decodeBase64(base64String);
+        // Convert base64 to bytes
+        const bytes = base64ToBytes(base64String);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
-            .upload(fileName, uint8Array, {
+            .upload(fileName, bytes, {
                 contentType: `image/${fileExt}`,
                 upsert: true,
             });
@@ -66,11 +81,11 @@ export const uploadPdfAsync = async (uri, name) => {
             encoding: FileSystem.EncodingType.Base64,
         });
 
-        const uint8Array = decodeBase64(base64String);
+        const bytes = base64ToBytes(base64String);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
-            .upload(fileName, uint8Array, {
+            .upload(fileName, bytes, {
                 contentType: 'application/pdf',
                 upsert: true,
             });
