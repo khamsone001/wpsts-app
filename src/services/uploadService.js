@@ -6,26 +6,26 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Convert base64 string to Uint8Array using pure JS (no atob)
-function base64ToBytes(base64) {
-    const OUTPUT = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    let input = base64.replace(/^data:[^;]+;base64,/, '');
+// Simple base64 decoder
+function decodeBase64(base64) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let data = base64.replace(/^data:[^;]+;base64,/, '');
     
     const result = [];
     let value = 0;
     let bits = 0;
     
-    for (let i = 0; i < input.length; i++) {
-        if (input[i] === '=') break;
-        const idx = OUTPUT.indexOf(input[i]);
-        if (idx === -1) continue;
+    for (let i = 0; i < data.length; i++) {
+        if (data[i] === '=') break;
+        const idx = chars.indexOf(data[i]);
+        if (idx < 0) continue;
         
         value = (value << 6) | idx;
         bits += 6;
         
         if (bits >= 8) {
             bits -= 8;
-            result.push((value >> bits) & 0xFF);
+            result.push((value >> bits) & 255);
         }
     }
     
@@ -34,21 +34,30 @@ function base64ToBytes(base64) {
 
 export const uploadImageAsync = async (uri) => {
     try {
-        let fileExt = uri.split('.').pop().toLowerCase();
+        let fileExt = 'jpg';
         
-        if (uri.startsWith('data:')) {
-            fileExt = 'jpg';
+        // Try to determine file type
+        if (!uri.startsWith('data:') && !uri.startsWith('file://')) {
+            fileExt = uri.split('.').pop().toLowerCase() || 'jpg';
         }
         
         const fileName = `images/${Date.now()}.${fileExt}`;
 
-        // Read file as base64 using expo-file-system
-        const base64String = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-
-        // Convert base64 to bytes
-        const bytes = base64ToBytes(base64String);
+        // Try File System read with explicit encoding
+        let bytes;
+        
+        try {
+            // Simple approach - read as string (should return base64 for images)
+            const readUri = uri.startsWith('file://') ? uri : `file://${uri}`;
+            const base64 = await FileSystem.readAsStringAsync(readUri, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+            bytes = decodeBase64(base64);
+        } catch (e) {
+            // Try without options
+            const content = await FileSystem.readAsStringAsync(uri);
+            bytes = new TextEncoder().encode(content);
+        }
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
@@ -77,11 +86,8 @@ export const uploadPdfAsync = async (uri, name) => {
     try {
         const fileName = `pdfs/${Date.now()}_${name}`;
 
-        const base64String = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-
-        const bytes = base64ToBytes(base64String);
+        const content = await FileSystem.readAsStringAsync(uri);
+        const bytes = new TextEncoder().encode(content);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
