@@ -4,6 +4,7 @@ import { UserService } from '../services/userService';
 import { uploadImageAsync } from '../services/uploadService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OfflineManager } from '../services/offlineManager';
+import { normalizeUserData } from '../utils/userNormalizer';
 
 const AuthContext = createContext();
 
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }) => {
                     if (!userData.uid && (userData._id || userData.id)) {
                         userData.uid = userData._id || userData.id;
                     }
-                    setUser(userData);
+                    setUser(normalizeUserData(userData));
                     setUserRole(userData.role);
                 }
             } catch (e) {
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }) => {
             await OfflineManager.clearQueue();
             
             const { user: loggedInUser, role } = await AuthService.login(email, password);
-            setUser(loggedInUser);
+            setUser(normalizeUserData(loggedInUser));
             setUserRole(role);
             return { success: true };
         } catch (error) {
@@ -73,7 +74,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             const finalUser = signupResult.user;
-            setUser(finalUser);
+            setUser(normalizeUserData(finalUser));
             setUserRole(finalUser.role);
             return { success: true, user: finalUser };
         } catch (error) {
@@ -90,9 +91,9 @@ export const AuthProvider = ({ children }) => {
             const result = await UserService.updateUserProfile(user.id || user.uid, data); // API returns the updated user
             if (result.success && result.data) {
                 const updatedUser = { ...result.data, uid: result.data.id };
-                setUser(updatedUser); // Update state
-                await AsyncStorage.setItem('userData', JSON.stringify(updatedUser)); // Update storage
-                return { success: true, data: updatedUser };
+                setUser(normalizeUserData(updatedUser));
+                await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+                return { success: true, data: normalizeUserData(updatedUser) };
             }
             return { success: false, error: result.error || 'Update failed' };
         } catch (error) {

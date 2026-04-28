@@ -12,7 +12,7 @@ const ProfileScreen = () => {
     const { user, userRole, logout, updateUserProfile } = useAuth();
     const navigation = useNavigation();
 
-    const [imageUri, setImageUri] = useState(user?.photoURL || null);
+    const [imageUri, setImageUri] = useState(user?.photo_url || user?.photoURL || null);
     const [hasNewImage, setHasNewImage] = useState(false);
     const [passwordModalVisible, setPasswordModalVisible] = useState(false);
 
@@ -25,8 +25,8 @@ const ProfileScreen = () => {
     const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
     useEffect(() => {
-        if (user?.photoURL) {
-            setImageUri(user.photoURL);
+        if (user?.photo_url || user?.photoURL) {
+            setImageUri(user.photo_url || user.photoURL);
         }
     }, [user]);
 
@@ -122,7 +122,7 @@ const ProfileScreen = () => {
                         <Image source={{ uri: imageUri }} style={styles.avatarImage} />
                     ) : (
                         <View style={styles.avatarPlaceholder}>
-                            <Text style={styles.avatarText}>{user?.personalInfo?.firstName?.charAt(0) || 'U'}</Text>
+                            <Text style={styles.avatarText}>{(user?.first_name || user?.personalInfo?.firstName || 'U').charAt(0)}</Text>
                         </View>
                     )}
                     <TouchableOpacity style={styles.changePhotoBtn} onPress={pickImage}>
