@@ -149,34 +149,6 @@ const EditProfileScreen = ({ navigation }) => {
             setMTotalWorkAge((user.class_m_total_work_age || user.history?.classM?.totalWorkAge || '').toString());
         }
     }, [user]);
-            setMotherLastName(user.family?.mother?.lastName || '');
-            setMotherAge(user.family?.mother?.age?.toString() || '');
-            setMotherPobHouse(user.family?.mother?.placeOfBirth?.house || '');
-            setMotherPobCity(user.family?.mother?.placeOfBirth?.city || '');
-            setMotherPobDistrict(user.family?.mother?.placeOfBirth?.district || '');
-            setMotherCurHouse(user.family?.mother?.currentAddress?.house || '');
-            setMotherCurCity(user.family?.mother?.currentAddress?.city || '');
-            setMotherCurDistrict(user.family?.mother?.currentAddress?.district || '');
-
-            // Load Class N
-            if (user.history?.classN?.entryDate) setNEntryDate(new Date(user.history.classN.entryDate));
-            setNHouse(user.history?.classN?.location?.house || '');
-            setNCity(user.history?.classN?.location?.city || '');
-            setNDistrict(user.history?.classN?.location?.district || '');
-            setNIssuer(user.history?.classN?.issuerName || '');
-            setNIdCard(user.history?.classN?.idCard || '');
-            setNTotalWorkAge(user.history?.classN?.totalWorkAge?.toString() || '');
-
-            // Load Class M
-            if (user.history?.classM?.entryDate) setMEntryDate(new Date(user.history.classM.entryDate));
-            setMHouse(user.history?.classM?.location?.house || '');
-            setMCity(user.history?.classM?.location?.city || '');
-            setMDistrict(user.history?.classM?.location?.district || '');
-            setMIssuer(user.history?.classM?.issuerName || '');
-            setMIdCard(user.history?.classM?.idCard || '');
-            setMTotalWorkAge(user.history?.classM?.totalWorkAge?.toString() || '');
-        }
-    }, [user]);
 
     const formatDate = (date) => {
         return date.toLocaleDateString('lo-LA', { year: 'numeric', month: 'long', day: 'numeric' });
