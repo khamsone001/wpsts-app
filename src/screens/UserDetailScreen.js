@@ -23,11 +23,10 @@ const UserDetailScreen = ({ route, navigation }) => {
     }, []);
 
     const fetchUser = async () => {
-        // Add a check to ensure uid is valid before fetching
         if (!uid) return;
         const data = await UserService.getUserProfile(uid);
         setUserProfile(data);
-        setSkillLevel(data?.workInfo?.skillLevel?.toString() || '0');
+        setSkillLevel(data?.skill_level?.toString() || '0');
         setSelectedRole(data?.role || 'user');
         setLoading(false);
     };
