@@ -1,49 +1,19 @@
 import { supabase } from '../config/supabaseClient';
-import * as FileSystem from 'expo-file-system';
-
-const decodeBase64ToUint8Array = (base64) => {
-    const base64Characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    const cleanBase64 = base64.replace(/^data:[^;]+;base64,/, '');
-    
-    const output = [];
-    let buffer = 0;
-    let bits = 0;
-    
-    for (let i = 0; i < cleanBase64.length; i++) {
-        const char = cleanBase64[i];
-        if (char === '=') break;
-        
-        const index = base64Characters.indexOf(char);
-        if (index === -1) continue;
-        
-        buffer = (buffer << 6) | index;
-        bits += 6;
-        
-        if (bits >= 8) {
-            bits -= 8;
-            output.push((buffer >> bits) & 0xFF);
-        }
-    }
-    
-    return new Uint8Array(output);
-};
 
 export const uploadImageAsync = async (uri) => {
     try {
-        const uriParts = uri.split('.');
-        const fileType = uriParts[uriParts.length - 1];
-        const fileName = `${Date.now()}.${fileType}`;
+        const fileExt = uri.split('.').pop().toLowerCase();
+        const fileName = `images/${Date.now()}.${fileExt}`;
 
-        const base64Data = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-
-        const bytes = decodeBase64ToUint8Array(base64Data);
+        // Upload via Supabase REST API directly
+        const response = await fetch(uri);
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
-            .upload(`images/${fileName}`, bytes, {
-                contentType: `image/${fileType}`,
+            .upload(fileName, uint8Array, {
+                contentType: `image/${fileExt}`,
                 upsert: true,
             });
 
@@ -54,7 +24,7 @@ export const uploadImageAsync = async (uri) => {
 
         const { data: publicUrlData } = supabase.storage
             .from('wpsts-uploads')
-            .getPublicUrl(`images/${fileName}`);
+            .getPublicUrl(fileName);
 
         return { url: publicUrlData.publicUrl };
     } catch (error) {
@@ -65,17 +35,15 @@ export const uploadImageAsync = async (uri) => {
 
 export const uploadPdfAsync = async (uri, name) => {
     try {
-        const fileName = `${Date.now()}_${name}`;
+        const fileName = `pdfs/${Date.now()}_${name}`;
 
-        const base64Data = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-
-        const bytes = decodeBase64ToUint8Array(base64Data);
+        const response = await fetch(uri);
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
-            .upload(`pdfs/${fileName}`, bytes, {
+            .upload(fileName, uint8Array, {
                 contentType: 'application/pdf',
                 upsert: true,
             });
@@ -87,7 +55,7 @@ export const uploadPdfAsync = async (uri, name) => {
 
         const { data: publicUrlData } = supabase.storage
             .from('wpsts-uploads')
-            .getPublicUrl(`pdfs/${fileName}`);
+            .getPublicUrl(fileName);
 
         return { url: publicUrlData.publicUrl, original_filename: name };
     } catch (error) {
