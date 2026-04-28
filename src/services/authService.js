@@ -83,10 +83,10 @@ export const AuthService = {
                 .from('profiles')
                 .insert([profileData]);
 
+            console.log('Profile insert result:', { profileData, profileError });
+            
             if (profileError) {
-                console.error('Profile insert error:', profileError);
-                // If profile insert fails, we might want to delete the auth user
-                throw new Error(profileError.message || 'Database error saving new user');
+                throw new Error('ERR: ' + profileError.message + ' | Code: ' + profileError.code);
             }
 
             // 3. Handle image upload if provided

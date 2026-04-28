@@ -9,18 +9,20 @@ const routineAttendanceService = {
             const cached = await OfflineManager.getCachedData(endpoint);
 
             // 2. Fetch from Supabase
-            // Note: This logic assumes an 'attendance_monthly' table that stores the aggregated view.
-            // If you prefer individual records, this logic will need to change.
             const fetchPromise = supabase
                 .from('attendance_monthly')
-                .select('data')
+                .select('*')
                 .eq('routine', routine)
                 .eq('year', year)
                 .eq('month', month + 1)
                 .single()
                 .then(async ({ data, error }) => {
-                    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is 'not found'
-                    const result = data?.data || { adminRecords: {}, mergedRecords: {} };
+                    if (error && error.code !== 'PGRST116') throw error;
+                    // Map database columns to expected format
+                    const result = data ? {
+                        adminRecords: data.admin_records || {},
+                        mergedRecords: data.merged_records || {}
+                    } : { adminRecords: {}, mergedRecords: {} };
                     await OfflineManager.cacheData(endpoint, result);
                     return result;
                 });

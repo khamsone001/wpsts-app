@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image, Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync, requestMediaLibraryPermissionsAsync } from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS, SIZES } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
@@ -178,7 +178,6 @@ const EditProfileScreen = ({ navigation }) => {
                 name: `${firstName} ${lastName}`,
                 nickname,
                 age: parseInt(age) || 0,
-                class: user.personalInfo?.class, // Preserve class
                 currentAddress: {
                     house: curHouse,
                     city: curCity,
@@ -234,6 +233,7 @@ const EditProfileScreen = ({ navigation }) => {
 
         const result = await updateUserProfile(updatedData);
         setLoading(false);
+
         if (result.success) {
             Alert.alert('ສຳເລັດ', 'ອັບເດດໂປຣໄຟລ໌ສຳເລັດ');
             navigation.goBack();
@@ -243,8 +243,8 @@ const EditProfileScreen = ({ navigation }) => {
     };
 
     const pickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        const result = await launchImageLibraryAsync({
+            mediaTypes: 'Images',
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.7,
@@ -465,7 +465,7 @@ const EditProfileScreen = ({ navigation }) => {
                     />
                 )}
 
-                <Text style={styles.subHeader}>ສະຖານທີ່ (Location)</Text>
+                               <Text style={styles.subHeader}>ສະຖານທີ່ (Location)</Text>
                 <View style={styles.row}>
                     <View style={styles.thirdInput}>
                         <TextInput style={styles.input} placeholder="ບ້ານ" value={nHouse} onChangeText={setNHouse} />
@@ -599,7 +599,6 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 10,
         backgroundColor: '#fff',
-        color: COLORS.text, // Explicitly set text color
     },
     row: {
         flexDirection: 'row',
