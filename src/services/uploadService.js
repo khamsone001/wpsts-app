@@ -1,35 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
+import * as FileSystem from 'expo-file-system';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Use a simpler filename approach
+// Decode base64 to Uint8Array manually
+function decodeBase64(base64) {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+}
+
 export const uploadImageAsync = async (uri) => {
     try {
-        // Get file extension from URI
-        const uriParts = uri.split('.');
-        let fileExt = uriParts[uriParts.length - 1];
+        let fileExt = uri.split('.').pop().toLowerCase();
         
-        // Handle data URI case
         if (uri.startsWith('data:')) {
-            fileExt = 'jpg'; // Default to jpg for base64 data URIs
+            fileExt = 'jpg';
         }
         
         const fileName = `images/${Date.now()}.${fileExt}`;
 
-        // Read as binary
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        
-        const arrayBuffer = await blob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        // Read as base64 string
+        const base64String = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+
+        // Decode base64 to bytes
+        const uint8Array = decodeBase64(base64String);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
             .upload(fileName, uint8Array, {
-                contentType: blob.type || `image/${fileExt}`,
+                contentType: `image/${fileExt}`,
                 upsert: true,
             });
 
@@ -53,11 +62,11 @@ export const uploadPdfAsync = async (uri, name) => {
     try {
         const fileName = `pdfs/${Date.now()}_${name}`;
 
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        
-        const arrayBuffer = await blob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        const base64String = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+
+        const uint8Array = decodeBase64(base64String);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
