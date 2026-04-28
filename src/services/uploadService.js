@@ -1,19 +1,35 @@
-import { supabase } from '../config/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Use a simpler filename approach
 export const uploadImageAsync = async (uri) => {
     try {
-        const fileExt = uri.split('.').pop().toLowerCase();
+        // Get file extension from URI
+        const uriParts = uri.split('.');
+        let fileExt = uriParts[uriParts.length - 1];
+        
+        // Handle data URI case
+        if (uri.startsWith('data:')) {
+            fileExt = 'jpg'; // Default to jpg for base64 data URIs
+        }
+        
         const fileName = `images/${Date.now()}.${fileExt}`;
 
-        // Upload via Supabase REST API directly
+        // Read as binary
         const response = await fetch(uri);
-        const arrayBuffer = await response.arrayBuffer();
+        const blob = await response.blob();
+        
+        const arrayBuffer = await blob.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
 
         const { data, error } = await supabase.storage
             .from('wpsts-uploads')
             .upload(fileName, uint8Array, {
-                contentType: `image/${fileExt}`,
+                contentType: blob.type || `image/${fileExt}`,
                 upsert: true,
             });
 
@@ -38,7 +54,9 @@ export const uploadPdfAsync = async (uri, name) => {
         const fileName = `pdfs/${Date.now()}_${name}`;
 
         const response = await fetch(uri);
-        const arrayBuffer = await response.arrayBuffer();
+        const blob = await response.blob();
+        
+        const arrayBuffer = await blob.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
 
         const { data, error } = await supabase.storage
