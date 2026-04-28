@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabaseClient';
+import { normalizeUserData } from '../utils/userNormalizer';
 
 export const UserService = {
     createUserProfile: async (userData) => {
@@ -29,7 +30,8 @@ export const UserService = {
                 .single();
             
             if (error) throw error;
-            return { ...data, uid: data.id };
+            const normalized = normalizeUserData(data);
+            return { ...normalized, uid: data.id };
         } catch (error) {
             console.error('Error fetching user profile:', error);
             throw error;
@@ -49,11 +51,11 @@ export const UserService = {
                 if (a.class !== b.class) {
                     return a.class === 'M' ? -1 : 1;
                 }
-                return (b.history?.workAge || 0) - (a.history?.workAge || 0);
+                return (b.work_age || 0) - (a.work_age || 0);
             });
 
             return users.map(user => ({
-                ...user,
+                ...normalizeUserData(user),
                 uid: user.id
             }));
         } catch (error) {
