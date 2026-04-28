@@ -60,32 +60,32 @@ const UserDetailScreen = ({ route, navigation }) => {
         }
     };
 
-    const handleUpdateClass = async (newClass) => {
+const handleUpdateClass = async (newClass) => {
         // Prevent updating if the class is already the same
-        if (userProfile?.personalInfo?.class === newClass) return;
-
+        if (userProfile?.class === newClass) return;
+        
         Alert.alert(
             'ຢືນຢັນການປ່ຽນ Class',
-            `ທ່ານແນ່ໃຈບໍ່ວ່າຕ້ອງການປ່ຽນ Class ຂອງຜູ້ໃຊ້ນີ້ເປັນ Class ${newClass === 'M' ? 'ພຣະ' : 'ສ.ນ'}?`,
+            `ທ່ານປ່ຽນ Class ຂອງ ${newClass === 'M' ? 'ພຣະ' : 'ສ.ນ'}?`,
             [
                 {
-                    text: 'ຍົກເລີກ',
+                    text: 'ຍ່ກ',
                     style: 'cancel',
                 },
                 {
                     text: 'ຢືນຢັນ',
                     onPress: async () => {
                         const result = await UserService.updateUserProfile(uid, {
-                            personalInfo: { ...userProfile.personalInfo, class: newClass }
+                            class: newClass
                         });
                         if (result.success) {
-                            Alert.alert('ສຳເລັດ', `ປ່ຽນ Class ເປັນ ${newClass === 'M' ? 'ພຣະ' : 'ສ.ນ'} ສຳເລັດ`);
+                            Alert.alert('ສຳເລັດ', `ປ່ຽນ Class ເປັນ ${newClass === 'M' ? 'ພຣະ' : 'ສ.ນ'} ສຳເລັດ!`);
                             if (user.uid === uid) {
-                                updateAuthContext({ personalInfo: { ...userProfile.personalInfo, class: newClass } });
+                                updateAuthContext({ class: newClass });
                             }
                             fetchUser();
                         } else {
-                            Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບເດດ Class ໄດ້: ' + result.error);
+                            Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດປ່ຽນ Class ໄດ້: ' + result.error);
                         }
                     },
                 },
@@ -116,19 +116,41 @@ const UserDetailScreen = ({ route, navigation }) => {
         }
     }, [userProfile]);
 
-    const handleUpdateName = async () => {
+const handleUpdateName = async () => {
         if (!firstNameInput.trim() || !lastNameInput.trim()) {
-            Alert.alert('ຜິດພາດ', 'ກະລຸນາປ້ອນຊື່ແລະນາມສະກຸນ');
+            Alert.alert('ຜິດພາດ', 'ກະລຸນາປ້ອນຊື່າມ');
             return;
         }
-
+        
         const newName = `${firstNameInput.trim()} ${lastNameInput.trim()}`;
-        const updatedPersonalInfo = {
-            ...userProfile.personalInfo,
-            firstName: firstNameInput.trim(),
-            lastName: lastNameInput.trim(),
+        const updatedData = {
+            first_name: firstNameInput.trim(),
+            last_name: lastNameInput.trim(),
             name: newName
         };
+
+        console.log('Updating name with:', updatedData);
+        const result = await UserService.updateUserProfile(uid, updatedData);
+        console.log('Update name result:', result);
+        
+        if (result.success) {
+            Alert.alert('ສຳເລັດ', 'ອັບເດດຊື່າມສຳເລັດ!');
+            setIsEditingName(false);
+            fetchUser();
+        } else {
+            Alert.alert('ຜິດພາດ', 'ບໍ່ອັບເດດຊື່າມ: ' + result.error);
+        }
+    };
+
+        const result = await UserService.updateUserProfile(uid, updatedData);
+        if (result.success) {
+            Alert.alert('ສຳເລັດ', 'ອັບເດດຊື່ສຳເລັດ!');
+            setIsEditingName(false);
+            fetchUser();
+        } else {
+            Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບເດດຊື່: ' + result.error);
+        }
+    };
 
         const result = await UserService.updateUserProfile(uid, { personalInfo: updatedPersonalInfo });
         if (result.success) {
@@ -140,41 +162,39 @@ const UserDetailScreen = ({ route, navigation }) => {
         }
     };
 
-    const handlePickImage = async () => {
+const handlePickImage = async () => {
         try {
-            // Logic matched with SignUpScreen.js
-            // No permissions request is necessary for launching the image library
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaType.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 0.5,
             });
-
+            
             if (!result.canceled) {
                 setLoading(true);
                 const imageUri = result.assets[0].uri;
-
-                // Upload image
+                
                 const uploadResult = await uploadImageAsync(imageUri);
                 if (uploadResult && uploadResult.url) {
-                    // Update user profile with new URL
-                    const updateResult = await UserService.updateUserProfile(uid, { photo_url: uploadResult.url });
+                    const updateResult = await UserService.updateUserProfile(uid, { 
+                        photo_url: uploadResult.url 
+                    });
                     if (updateResult.success) {
-                        Alert.alert('ສຳເລັດ', 'ອັບເດດຮູບໂປຣໄຟລ໌ສຳເລັດ');
+                        Alert.alert('ສຳເລັດ', 'ອັບເດດໂປຣໄຟລສຳເລັດ!');
                         fetchUser();
                     } else {
-                        Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບເດດຮູບໂປຣໄຟລ໌ໄດ້');
+                        Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບເດດໂປຣໄຟລ: ' + updateResult.error);
                     }
                 } else {
-                    Alert.alert('ຜິດພາດ', 'ບໍ່ສາມາດອັບໂຫຼດຮູບພາບໄດ້');
+                    Alert.alert('ຜິດພາດ', 'ອັບໂຫຼດຮູບລົມເດດ!');
                 }
                 setLoading(false);
             }
         } catch (error) {
             console.error('PickImage Error:', error);
             setLoading(false);
-            Alert.alert('ຜິດພາດ', 'ເກີດຂໍ້ຜິດພາດໃນການເລືອກຮູບພາບ: ' + (error.message || error));
+            Alert.alert('ຜິດພາດ', 'ຜິດພາດ: ' + error.message);
         }
     };
 
