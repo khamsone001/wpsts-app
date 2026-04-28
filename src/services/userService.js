@@ -1,6 +1,8 @@
 import { supabase } from '../config/supabaseClient';
 import { normalizeUserData } from '../utils/userNormalizer';
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://wpsts-backend.onrender.com/api';
+
 export const UserService = {
     createUserProfile: async (userData) => {
         try {
@@ -65,10 +67,43 @@ export const UserService = {
     },
 
     updateUserProfile: async (id, userData) => {
+        // Flatten nested data if needed (convert personalInfo.class -> class, etc.)
+        let flatData = { ...userData };
+        
+        if (userData.personalInfo) {
+            flatData.class = userData.personalInfo.class;
+            flatData.first_name = userData.personalInfo.firstName;
+            flatData.last_name = userData.personalInfo.lastName;
+            flatData.nickname = userData.personalInfo.nickname;
+            flatData.age = userData.personalInfo.age;
+            flatData.address_house = userData.personalInfo.currentAddress?.house;
+            flatData.address_city = userData.personalInfo.currentAddress?.city;
+            flatData.address_district = userData.personalInfo.currentAddress?.district;
+            delete flatData.personalInfo;
+        }
+        
+        if (userData.history) {
+            flatData.work_age = userData.history.workAge;
+            flatData.birth_date = userData.history.birthDate;
+            flatData.birth_place_house = userData.history.placeOfBirth?.house;
+            flatData.birth_place_city = userData.history.placeOfBirth?.city;
+            flatData.birth_place_district = userData.history.placeOfBirth?.district;
+            flatData.race = userData.history.race;
+            flatData.nationality = userData.history.nationality;
+            flatData.tribe = userData.history.tribe;
+            flatData.education = userData.history.education;
+            delete flatData.history;
+        }
+        
+        if (userData.photoURL) {
+            flatData.photo_url = userData.photoURL;
+            delete flatData.photoURL;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .update(userData)
+                .update(flatData)
                 .eq('id', id)
                 .select();
             
@@ -97,10 +132,28 @@ export const UserService = {
         }
     },
 
+    setUserPassword: async (id, newPassword) => {
+        // Call backend API to set password
+        try {
+            const token = await supabase.auth.getSession();
+            const response = await fetch(`${API_URL}/users/${id}/set-password`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token.data.session?.access_token}`
+                },
+                body: JSON.stringify({ password: newPassword })
+            });
+            
+            if (!response.ok) throw new Error('Failed to set password');
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
     deleteUser: async (id) => {
         try {
-            // Note: In Supabase, deleting from profiles won't delete from auth.users unless set up with triggers.
-            // But we usually delete from profiles first.
             const { error } = await supabase
                 .from('profiles')
                 .delete()
@@ -125,12 +178,6 @@ export const UserService = {
         } catch (error) {
             return { success: false, error: error.message };
         }
-    },
-
-    setUserPassword: async (id, password) => {
-        // This requires admin privileges or using Supabase edge functions
-        // For client-side, we can't easily set other users' passwords.
-        return { success: false, error: 'Not implemented for direct client-side migration' };
     },
 
     changePassword: async (currentPassword, newPassword) => {
