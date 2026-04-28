@@ -5,10 +5,10 @@ const routineAttendanceService = {
     getAttendanceForMonth: async (routine, year, month) => {
         const endpoint = `/attendance/${routine}/${year}/${month + 1}`;
         try {
-            // 1. Check cache first
+            // 1. Get cached data first (for fast display)
             const cached = await OfflineManager.getCachedData(endpoint);
-
-            // 2. Fetch from Supabase
+            
+            // 2. Always fetch fresh data from database in background
             const fetchPromise = supabase
                 .from('attendance_monthly')
                 .select('*')
@@ -18,16 +18,23 @@ const routineAttendanceService = {
                 .single()
                 .then(async ({ data, error }) => {
                     if (error && error.code !== 'PGRST116') throw error;
-                    // Map database columns to expected format
                     const result = data ? {
                         adminRecords: data.admin_records || {},
                         mergedRecords: data.merged_records || {}
                     } : { adminRecords: {}, mergedRecords: {} };
+                    // Update cache with fresh data
                     await OfflineManager.cacheData(endpoint, result);
                     return result;
                 });
 
-            return cached || await fetchPromise;
+            // Return cached immediately if available, otherwise wait for fresh data
+            if (cached) {
+                // Return cached now, but also refresh in background
+                fetchPromise.catch(console.error); // Don't wait for it
+                return cached;
+            }
+            
+            return await fetchPromise;
         } catch (error) {
             console.error('Error fetching attendance:', error);
             return await OfflineManager.getCachedData(endpoint) || { adminRecords: {}, mergedRecords: {} };
