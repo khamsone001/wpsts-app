@@ -3,6 +3,7 @@ import { AuthService } from '../services/authService';
 import { UserService } from '../services/userService';
 import { uploadImageAsync } from '../services/uploadService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { OfflineManager } from '../services/offlineManager';
 
 const AuthContext = createContext();
 
@@ -15,6 +16,9 @@ export const AuthProvider = ({ children }) => {
         // Check for stored user data on app startup
         const checkLoginState = async () => {
             try {
+                // Clear old sync queue on app start
+                await OfflineManager.clearQueue();
+                
                 const userDataString = await AsyncStorage.getItem('userData');
                 if (userDataString) {
                     const userData = JSON.parse(userDataString);
@@ -38,6 +42,9 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         setIsLoading(true);
         try {
+            // Clear old queue before login
+            await OfflineManager.clearQueue();
+            
             const { user: loggedInUser, role } = await AuthService.login(email, password);
             setUser(loggedInUser);
             setUserRole(role);
@@ -80,9 +87,9 @@ export const AuthProvider = ({ children }) => {
         setIsLoading(true);
         try {
             if (!user) throw new Error('No user logged in');
-            const result = await UserService.updateUserProfile(user.uid, data); // API returns the updated user
+            const result = await UserService.updateUserProfile(user.id || user.uid, data); // API returns the updated user
             if (result.success && result.data) {
-                const updatedUser = { ...result.data, uid: result.data._id };
+                const updatedUser = { ...result.data, uid: result.data.id };
                 setUser(updatedUser); // Update state
                 await AsyncStorage.setItem('userData', JSON.stringify(updatedUser)); // Update storage
                 return { success: true, data: updatedUser };

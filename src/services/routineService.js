@@ -1,8 +1,5 @@
-import { apiRequest } from './apiHelper';
+import { supabase } from '../config/supabaseClient';
 import { OfflineManager } from './offlineManager';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const ROUTINE_CACHE_KEY = '@api_cache_/routines';
 
 const routineService = {
     // Get all routines (Offline-first / SWR Pattern)
@@ -11,13 +8,18 @@ const routineService = {
             // 1. Try to get from cache first for instant UI
             const cached = await OfflineManager.getCachedData('/routines');
 
-            // 2. Fetch from API in background (or foreground if no cache)
-            const fetchPromise = apiRequest('/routines').then(async (routines) => {
-                if (routines && Array.isArray(routines)) {
-                    await OfflineManager.cacheData('/routines', routines);
-                }
-                return routines;
-            });
+            // 2. Fetch from Supabase in background
+            const fetchPromise = supabase
+                .from('routines')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .then(async ({ data, error }) => {
+                    if (error) throw error;
+                    if (data && Array.isArray(data)) {
+                        await OfflineManager.cacheData('/routines', data);
+                    }
+                    return data;
+                });
 
             // If we have cache, return it immediately, otherwise wait for fetch
             return cached || await fetchPromise;
@@ -30,8 +32,13 @@ const routineService = {
     // Get routines by type (main or sub)
     getRoutinesByType: async (type) => {
         try {
-            const routines = await apiRequest(`/routines?type=${type}`);
-            return routines || [];
+            const { data, error } = await supabase
+                .from('routines')
+                .select('*')
+                .eq('type', type);
+            
+            if (error) throw error;
+            return data || [];
         } catch (error) {
             console.error(`Error fetching ${type} routines:`, error);
             return [];
@@ -47,12 +54,17 @@ const routineService = {
                 return [...routines, routineData];
             });
 
-            // Try to send to server
-            const result = await apiRequest('/routines', 'POST', routineData);
-            return { success: true, data: result };
+            // Try to send to Supabase
+            const { data, error } = await supabase
+                .from('routines')
+                .insert([routineData])
+                .select()
+                .single();
+            
+            if (error) throw error;
+            return { success: true, data };
         } catch (error) {
             console.error('Error creating routine:', error);
-            // Request is already queued by apiRequest/offlineManager
             return { success: true, offline: true, message: 'Saved locally' };
         }
     },
@@ -66,12 +78,18 @@ const routineService = {
                 return routines.map(r => r.id === id ? { ...r, ...routineData } : r);
             });
 
-            // Try to send to server
-            const data = await apiRequest(`/routines/${id}`, 'PUT', routineData);
+            // Try to send to Supabase
+            const { data, error } = await supabase
+                .from('routines')
+                .update(routineData)
+                .eq('id', id)
+                .select()
+                .single();
+            
+            if (error) throw error;
             return { success: true, data };
         } catch (error) {
             console.error('Error updating routine:', error);
-            // Request is already queued by apiRequest/offlineManager
             return { success: true, offline: true, message: 'Updated locally' };
         }
     },
@@ -79,7 +97,12 @@ const routineService = {
     // Delete routine (Super Admin only)
     deleteRoutine: async (id) => {
         try {
-            await apiRequest(`/routines/${id}`, 'DELETE');
+            const { error } = await supabase
+                .from('routines')
+                .delete()
+                .eq('id', id);
+            
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             console.error('Error deleting routine:', error);
@@ -89,3 +112,4 @@ const routineService = {
 };
 
 export default routineService;
+

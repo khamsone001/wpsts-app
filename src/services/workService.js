@@ -1,33 +1,56 @@
-import { apiRequest } from './apiHelper';
+import { supabase } from '../config/supabaseClient';
 
 export const WorkService = {
     createWork: async (workData) => {
         try {
-            const data = await apiRequest('/works', 'POST', workData);
-            return { success: true, id: data._id };
+            const { data, error } = await supabase
+                .from('works')
+                .insert([workData])
+                .select();
+            
+            if (error) throw error;
+            return { success: true, id: data[0].id };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
     getAllWorks: async () => {
         try {
-            const works = await apiRequest('/works');
-            return works.map(work => ({ ...work, id: work._id }));
+            const { data, error } = await supabase
+                .from('works')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            return data;
         } catch (error) {
+            console.error('Error fetching works:', error);
             return [];
         }
     },
     getWorkById: async (id) => {
         try {
-            const work = await apiRequest(`/works/${id}`);
-            return { ...work, id: work._id };
+            const { data, error } = await supabase
+                .from('works')
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (error) throw error;
+            return data;
         } catch (error) {
+            console.error('Error fetching work by id:', error);
             return null;
         }
     },
     updateWork: async (id, workData) => {
         try {
-            await apiRequest(`/works/${id}`, 'PUT', workData);
+            const { error } = await supabase
+                .from('works')
+                .update(workData)
+                .eq('id', id);
+            
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -42,10 +65,16 @@ export const WorkService = {
     },
     deleteWork: async (id) => {
         try {
-            await apiRequest(`/works/${id}`, 'DELETE');
+            const { error } = await supabase
+                .from('works')
+                .delete()
+                .eq('id', id);
+            
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }
     }
 };
+

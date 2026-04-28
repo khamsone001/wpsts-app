@@ -45,6 +45,11 @@ export const OfflineManager = {
         await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(newQueue));
     },
 
+    clearQueue: async () => {
+        await AsyncStorage.removeItem(QUEUE_KEY);
+        console.log('[Offline] Queue cleared');
+    },
+
     // 2. Data Caching for GET requests
     cacheData: async (endpoint, data) => {
         try {

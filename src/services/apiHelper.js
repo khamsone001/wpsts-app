@@ -28,10 +28,10 @@ export const apiRequest = async (endpoint, method = 'GET', body = null, skipQueu
         config.body = JSON.stringify(body);
     }
 
-    // Trigger sync in background if online (don't await to avoid blocking)
-    if (!skipQueue) {
-        OfflineManager.syncQueue(apiRequest).catch(console.error);
-    }
+    // TEMPORARILY DISABLED: Trigger sync in background if online
+    // if (!skipQueue) {
+    //     OfflineManager.syncQueue(apiRequest).catch(console.error);
+    // }
 
     // Retry configuration
     const MAX_RETRIES = 3; // Reduced for Vercel, which has faster cold starts

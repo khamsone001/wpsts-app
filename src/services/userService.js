@@ -1,9 +1,15 @@
-import { apiRequest } from './apiHelper';
+import { supabase } from '../config/supabaseClient';
 
 export const UserService = {
     createUserProfile: async (userData) => {
         try {
-            const data = await apiRequest('/users', 'POST', userData);
+            const { data, error } = await supabase
+                .from('profiles')
+                .insert([userData])
+                .select()
+                .single();
+            
+            if (error) throw error;
             return { success: true, data };
         } catch (error) {
             return { success: false, error: error.message };
@@ -16,40 +22,56 @@ export const UserService = {
                 console.warn("getUserProfile called with no ID.");
                 return null;
             }
-            const user = await apiRequest(`/users/${id}`);
-            return { ...user, uid: user._id };
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (error) throw error;
+            return { ...data, uid: data.id };
         } catch (error) {
-            if (error.message.includes('Not authorized')) {
-                // Handle token issues, maybe force logout
-            }
+            console.error('Error fetching user profile:', error);
             throw error;
         }
     },
 
     getAllUsers: async () => {
         try {
-            const users = await apiRequest('/users');
+            const { data: users, error } = await supabase
+                .from('profiles')
+                .select('*');
+            
+            if (error) throw error;
+
             // Custom sort: Class 'M' first, then by workAge descending within each class.
             users.sort((a, b) => {
-                // If classes are different, 'M' always comes before 'N'.
-                if (a.personalInfo?.class !== b.personalInfo?.class) {
-                    return a.personalInfo?.class === 'M' ? -1 : 1;
+                if (a.class !== b.class) {
+                    return a.class === 'M' ? -1 : 1;
                 }
-                // If classes are the same, sort by workAge descending.
                 return (b.history?.workAge || 0) - (a.history?.workAge || 0);
             });
+
             return users.map(user => ({
                 ...user,
-                uid: user._id
+                uid: user.id
             }));
         } catch (error) {
+            console.error('Error fetching all users:', error);
             return [];
         }
     },
 
     updateUserProfile: async (id, userData) => {
         try {
-            const data = await apiRequest(`/users/${id}`, 'PUT', userData);
+            const { data, error } = await supabase
+                .from('profiles')
+                .update(userData)
+                .eq('id', id)
+                .select()
+                .single();
+            
+            if (error) throw error;
             return { success: true, data };
         } catch (error) {
             return { success: false, error: error.message };
@@ -58,7 +80,7 @@ export const UserService = {
 
     updateUserSkill: async (id, skillLevel) => {
         try {
-            const userData = { workInfo: { skillLevel: parseInt(skillLevel) } };
+            const userData = { skill_level: parseInt(skillLevel) };
             return await UserService.updateUserProfile(id, userData);
         } catch (error) {
             return { success: false, error: error.message };
@@ -76,7 +98,14 @@ export const UserService = {
 
     deleteUser: async (id) => {
         try {
-            await apiRequest(`/users/${id}`, 'DELETE');
+            // Note: In Supabase, deleting from profiles won't delete from auth.users unless set up with triggers.
+            // But we usually delete from profiles first.
+            const { error } = await supabase
+                .from('profiles')
+                .delete()
+                .eq('id', id);
+            
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -85,7 +114,12 @@ export const UserService = {
 
     approveUser: async (id) => {
         try {
-            await apiRequest(`/users/${id}/approve`, 'PUT');
+            const { error } = await supabase
+                .from('profiles')
+                .update({ approved: true })
+                .eq('id', id);
+            
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -93,20 +127,19 @@ export const UserService = {
     },
 
     setUserPassword: async (id, password) => {
-        try {
-            await apiRequest(`/users/${id}/set-password`, 'PUT', { password });
-            return { success: true };
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
+        // This requires admin privileges or using Supabase edge functions
+        // For client-side, we can't easily set other users' passwords.
+        return { success: false, error: 'Not implemented for direct client-side migration' };
     },
 
     changePassword: async (currentPassword, newPassword) => {
         try {
-            await apiRequest('/users/change-password', 'PUT', { currentPassword, newPassword });
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
 };
+

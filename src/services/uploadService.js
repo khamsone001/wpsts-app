@@ -1,71 +1,55 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiRequest } from './apiHelper'; // Import the helper
-import { getActiveServer } from '../config/apiConfig';
+import { supabase } from '../config/supabaseClient';
 
-// The API_BASE_URL is now managed by apiHelper.js
 export const uploadImageAsync = async (uri) => {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) {
-        throw new Error('No user token found. Please log in.');
+    try {
+        const uriParts = uri.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        const fileName = `${Date.now()}.${fileType}`;
+
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        const { data, error } = await supabase.storage
+            .from('uploads')
+            .upload(`images/${fileName}`, blob, {
+                contentType: `image/${fileType}`,
+            });
+
+        if (error) throw error;
+
+        const { data: publicUrlData } = supabase.storage
+            .from('uploads')
+            .getPublicUrl(`images/${fileName}`);
+
+        return { url: publicUrlData.publicUrl };
+    } catch (error) {
+        console.error('Image upload failed:', error);
+        throw error;
     }
-    const API_URL = await getActiveServer();
-    const apiUrl = `${API_URL}/upload`;
-
-    const uriParts = uri.split('.');
-    const fileType = uriParts[uriParts.length - 1];
-
-    const formData = new FormData();
-    formData.append('image', {
-        uri,
-        name: `photo.${fileType}`,
-        type: `image/${fileType}`,
-    });
-
-    const options = {
-        method: 'POST',
-        body: formData,
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`,
-        },
-    };
-
-    const response = await fetch(apiUrl, options);
-    const data = await response.json();
-
-    if (!response.ok) throw new Error(data.message || 'Upload failed');
-    return data; // This should be { url: '...' }
 };
 
 export const uploadPdfAsync = async (uri, name) => {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) {
-        throw new Error('No user token found. Please log in.');
+    try {
+        const fileName = `${Date.now()}_${name}`;
+
+        const response = await fetch(uri);
+        const blob = await response.blob();
+
+        const { data, error } = await supabase.storage
+            .from('uploads')
+            .upload(`pdfs/${fileName}`, blob, {
+                contentType: 'application/pdf',
+            });
+
+        if (error) throw error;
+
+        const { data: publicUrlData } = supabase.storage
+            .from('uploads')
+            .getPublicUrl(`pdfs/${fileName}`);
+
+        return { url: publicUrlData.publicUrl, original_filename: name };
+    } catch (error) {
+        console.error('PDF upload failed:', error);
+        throw error;
     }
-    const API_URL = await getActiveServer();
-    const apiUrl = `${API_URL}/upload/pdf`;
-
-    const formData = new FormData();
-    formData.append('pdf', {
-        uri,
-        name,
-        type: 'application/pdf',
-    });
-
-    const options = {
-        method: 'POST',
-        body: formData,
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`,
-        },
-    };
-
-    const response = await fetch(apiUrl, options);
-    const data = await response.json();
-
-    if (!response.ok) throw new Error(data.message || 'PDF Upload failed');
-    return data; // This should be { url: '...', original_filename: '...' }
-};
+};

@@ -1,18 +1,29 @@
-import { apiRequest } from './apiHelper';
+import { supabase } from '../config/supabaseClient';
 
 const documentService = {
     createDocument: async (documentData) => {
         try {
-            const data = await apiRequest('/documents', 'POST', documentData);
-            return { success: true, document: { ...data, id: data._id } };
+            const { data, error } = await supabase
+                .from('documents')
+                .insert([documentData])
+                .select()
+                .single();
+            
+            if (error) throw error;
+            return { success: true, document: { ...data, id: data.id } };
         } catch (error) {
             return { success: false, error: error.message };
         }
     },
     getAllDocuments: async () => {
         try {
-            const documents = await apiRequest('/documents');
-            const formattedDocs = documents.map(doc => ({ ...doc, id: doc._id }));
+            const { data: documents, error } = await supabase
+                .from('documents')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            const formattedDocs = documents.map(doc => ({ ...doc, id: doc.id }));
             return { success: true, documents: formattedDocs };
         } catch (error) {
             return { success: false, error: error.message, documents: [] };
@@ -20,7 +31,12 @@ const documentService = {
     },
     updateDocument: async (id, documentData) => {
         try {
-            await apiRequest(`/documents/${id}`, 'PUT', documentData);
+            const { error } = await supabase
+                .from('documents')
+                .update(documentData)
+                .eq('id', id);
+            
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -28,7 +44,12 @@ const documentService = {
     },
     deleteDocument: async (id) => {
         try {
-            await apiRequest(`/documents/${id}`, 'DELETE');
+            const { error } = await supabase
+                .from('documents')
+                .delete()
+                .eq('id', id);
+            
+            if (error) throw error;
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
@@ -36,4 +57,4 @@ const documentService = {
     },
 };
 
-export default documentService;
+export default documentService;
