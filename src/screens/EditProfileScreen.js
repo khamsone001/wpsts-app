@@ -172,66 +172,58 @@ const EditProfileScreen = ({ navigation }) => {
         }
 
         const updatedData = {
-            // We should not spread the whole user object as it might contain sensitive data
-            // or fields that shouldn't be updated, like _id, password, token etc.
-            personalInfo: {
-                // ...user.personalInfo, // Avoid spreading, build from state
-                firstName,
-                lastName,
-                name: `${firstName} ${lastName}`,
-                nickname,
-                age: parseInt(age) || 0,
-                currentAddress: {
-                    house: curHouse,
-                    city: curCity,
-                    district: curDistrict
-                }
-            },
-            history: {
-                // ...user.history,
-                workAge: parseInt(workAge) || 0,
-                birthDate: birthDate.toISOString(),
-                placeOfBirth: {
-                    house: pobHouse,
-                    city: pobCity,
-                    district: pobDistrict
-                },
-                race,
-                nationality,
-                tribe,
-                education,
-                classN: {
-                    entryDate: nEntryDate.toISOString(),
-                    location: { house: nHouse, city: nCity, district: nDistrict },
-                    issuerName: nIssuer,
-                    idCard: nIdCard,
-                    totalWorkAge: parseInt(nTotalWorkAge) || 0
-                },
-                classM: user.class === 'M' ? {
-                    entryDate: mEntryDate.toISOString(),
-                    location: { house: mHouse, city: mCity, district: mDistrict },
-                    issuerName: mIssuer,
-                    idCard: mIdCard,
-                    totalWorkAge: parseInt(mTotalWorkAge) || 0
-                } : null
-            },
-            family: {
-                father: {
-                    firstName: fatherFirstName,
-                    lastName: fatherLastName,
-                    age: parseInt(fatherAge) || 0,
-                    placeOfBirth: { house: fatherPobHouse, city: fatherPobCity, district: fatherPobDistrict },
-                    currentAddress: { house: fatherCurHouse, city: fatherCurCity, district: fatherCurDistrict }
-                },
-                mother: {
-                    firstName: motherFirstName,
-                    lastName: motherLastName,
-                    age: parseInt(motherAge) || 0,
-                    placeOfBirth: { house: motherPobHouse, city: motherPobCity, district: motherPobDistrict },
-                    currentAddress: { house: motherCurHouse, city: motherCurCity, district: motherCurDistrict }
-                }
-            },
-            photoURL: finalImageUri
+            first_name: firstName,
+            last_name: lastName,
+            name: `${firstName} ${lastName}`,
+            nickname,
+            age: parseInt(age) || 0,
+            work_age: parseInt(workAge) || 0,
+            birth_date: birthDate.toISOString(),
+            race,
+            nationality,
+            tribe,
+            education,
+            address_house: curHouse,
+            address_city: curCity,
+            address_district: curDistrict,
+            birth_place_house: pobHouse,
+            birth_place_city: pobCity,
+            birth_place_district: pobDistrict,
+            father_first_name: fatherFirstName,
+            father_last_name: fatherLastName,
+            father_age: parseInt(fatherAge) || 0,
+            father_place_birth_house: fatherPobHouse,
+            father_place_birth_city: fatherPobCity,
+            father_place_birth_district: fatherPobDistrict,
+            father_current_address_house: fatherCurHouse,
+            father_current_address_city: fatherCurCity,
+            father_current_address_district: fatherCurDistrict,
+            mother_first_name: motherFirstName,
+            mother_last_name: motherLastName,
+            mother_age: parseInt(motherAge) || 0,
+            mother_place_birth_house: motherPobHouse,
+            mother_place_birth_city: motherPobCity,
+            mother_place_birth_district: motherPobDistrict,
+            mother_current_address_house: motherCurHouse,
+            mother_current_address_city: motherCurCity,
+            mother_current_address_district: motherCurDistrict,
+            class_n_entry_date: nEntryDate.toISOString(),
+            class_n_location_house: nHouse,
+            class_n_location_city: nCity,
+            class_n_location_district: nDistrict,
+            class_n_issuer_name: nIssuer,
+            class_n_id_card: nIdCard,
+            class_n_total_work_age: parseInt(nTotalWorkAge) || 0,
+            ...(user?.class === 'M' ? {
+                class_m_entry_date: mEntryDate.toISOString(),
+                class_m_location_house: mHouse,
+                class_m_location_city: mCity,
+                class_m_location_district: mDistrict,
+                class_m_issuer_name: mIssuer,
+                class_m_id_card: mIdCard,
+                class_m_total_work_age: parseInt(mTotalWorkAge) || 0,
+            } : {}),
+            photo_url: finalImageUri
         };
 
         const result = await updateUserProfile(updatedData);

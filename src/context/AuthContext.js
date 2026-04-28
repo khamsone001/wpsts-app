@@ -89,11 +89,12 @@ export const AuthProvider = ({ children }) => {
         try {
             if (!user) throw new Error('No user logged in');
             const result = await UserService.updateUserProfile(user.id || user.uid, data); // API returns the updated user
-            if (result.success && result.data) {
-                const updatedUser = { ...result.data, uid: result.data.id };
-                setUser(normalizeUserData(updatedUser));
-                await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
-                return { success: true, data: normalizeUserData(updatedUser) };
+            if (result.success) {
+                // Merge updated data into existing user (fallback if Supabase doesn't return row due to RLS)
+                const mergedUser = { ...(result.data || user), ...data, uid: user.id || user.uid };
+                setUser(normalizeUserData(mergedUser));
+                await AsyncStorage.setItem('userData', JSON.stringify(mergedUser));
+                return { success: true, data: normalizeUserData(mergedUser) };
             }
             return { success: false, error: result.error || 'Update failed' };
         } catch (error) {

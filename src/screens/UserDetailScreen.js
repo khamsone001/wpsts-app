@@ -145,7 +145,7 @@ const UserDetailScreen = ({ route, navigation }) => {
             // Logic matched with SignUpScreen.js
             // No permissions request is necessary for launching the image library
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images, // Reverted to match SignUpScreen exactly
+                mediaTypes: ImagePicker.MediaType.Images,
                 allowsEditing: true,
                 aspect: [1, 1],
                 quality: 0.5,
@@ -159,7 +159,7 @@ const UserDetailScreen = ({ route, navigation }) => {
                 const uploadResult = await uploadImageAsync(imageUri);
                 if (uploadResult && uploadResult.url) {
                     // Update user profile with new URL
-                    const updateResult = await UserService.updateUserProfile(uid, { photoURL: uploadResult.url });
+                    const updateResult = await UserService.updateUserProfile(uid, { photo_url: uploadResult.url });
                     if (updateResult.success) {
                         Alert.alert('ສຳເລັດ', 'ອັບເດດຮູບໂປຣໄຟລ໌ສຳເລັດ');
                         fetchUser();
@@ -274,8 +274,8 @@ const UserDetailScreen = ({ route, navigation }) => {
                             style={styles.avatarTouchable}
                         >
                             <View style={styles.avatar}>
-                                {userProfile?.photoURL ? (
-                                    <Image source={{ uri: userProfile.photoURL }} style={styles.avatarImage} />
+                                {userProfile?.photo_url ? (
+                                    <Image source={{ uri: userProfile.photo_url }} style={styles.avatarImage} />
                                 ) : (
                                     <Text style={styles.avatarText}>
                                         {userProfile?.personalInfo?.name?.charAt(0) || 'U'}

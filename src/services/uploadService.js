@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { File, Paths, FileSystem } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,17 +43,17 @@ export const uploadImageAsync = async (uri) => {
 
         let bytes;
         
-        // Use new File API
-        const tempFile = new File(Paths.cache, `upload_${Date.now()}.${fileExt}`);
-        
-        // Copy the image to temp location
+        // Copy the image to temp location using legacy FileSystem API
+        const tempUri = FileSystem.cacheDirectory + `upload_${Date.now()}.${fileExt}`;
         await FileSystem.copyAsync({
             from: uri,
-            to: tempFile.uri
+            to: tempUri
         });
         
         // Read as base64
-        const base64Data = await tempFile.base64();
+        const base64Data = await FileSystem.readAsStringAsync(tempUri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
         bytes = decodeBase64(base64Data);
 
         const { data, error } = await supabase.storage
@@ -83,10 +83,12 @@ export const uploadPdfAsync = async (uri, name) => {
     try {
         const fileName = `pdfs/${Date.now()}_${name}`;
 
-        const tempFile = new File(Paths.cache, `upload_${Date.now()}.pdf`);
-        await FileSystem.copyAsync({ from: uri, to: tempFile.uri });
+        const tempUri = FileSystem.cacheDirectory + `upload_${Date.now()}.pdf`;
+        await FileSystem.copyAsync({ from: uri, to: tempUri });
         
-        const base64Data = await tempFile.base64();
+        const base64Data = await FileSystem.readAsStringAsync(tempUri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
         const bytes = decodeBase64(base64Data);
 
         const { data, error } = await supabase.storage

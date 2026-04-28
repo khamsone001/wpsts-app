@@ -54,7 +54,7 @@ const ProfileScreen = () => {
                 const uploadResult = await uploadImageAsync(imageUri);
                 const newPhotoURL = uploadResult.url;
 
-                const result = await updateUserProfile({ photoURL: newPhotoURL });
+                const result = await updateUserProfile({ photo_url: newPhotoURL });
 
                 if (result.success) {
                     setHasNewImage(false);

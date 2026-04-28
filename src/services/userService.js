@@ -68,11 +68,10 @@ export const UserService = {
                 .from('profiles')
                 .update(userData)
                 .eq('id', id)
-                .select()
-                .single();
+                .select();
             
             if (error) throw error;
-            return { success: true, data };
+            return { success: true, data: data?.[0] };
         } catch (error) {
             return { success: false, error: error.message };
         }
