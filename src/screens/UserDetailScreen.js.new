@@ -1,0 +1,209 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal, Image, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { COLORS, SIZES } from '../constants/theme';
+import { UserService } from '../services/userService';
+import { useAuth } from '../context/AuthContext';
+import { uploadImageAsync } from '../services/uploadService';
+
+const UserDetailScreen = ({ route, navigation }) => {
+    const { uid } = route.params;
+    const { user, userRole, updateUserProfile: updateAuthContext } = useAuth();
+    const [userProfile, setUserProfile] = useState(null);
+    const [skillLevel, setSkillLevel] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [selectedRole, setSelectedRole] = useState('');
+    const [showRoleModal, setShowRoleModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    
+    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const [emailInput, setEmailInput] = useState('');
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [firstNameInput, setFirstNameInput] = useState('');
+    const [lastNameInput, setLastNameInput] = useState('');
+
+    useEffect(() => {
+        fetchUser();
+    }, []);
+
+    const fetchUser = async () => {
+        if (!uid) return;
+        const data = await UserService.getUserProfile(uid);
+        setUserProfile(data);
+        setSkillLevel(data?.skill_level?.toString() || '0');
+        setSelectedRole(data?.role || 'user');
+        setLoading(false);
+    };
+
+    const handleUpdateSkill = async () => {
+        const level = parseInt(skillLevel);
+        if (isNaN(level) || level < 0 || level > 100) {
+            Alert.alert('Error', 'Skill level must be between 0 and 100');
+            return;
+        }
+        const result = await UserService.updateUserSkill(uid, level);
+        if (result.success) {
+            Alert.alert('Success', 'Skill level updated!');
+            fetchUser();
+        } else {
+            Alert.alert('Error', 'Failed to update skill: ' + result.error);
+        }
+    };
+
+    const handleUpdateRole = async (role) => {
+        const result = await UserService.updateUserRole(uid, role);
+        if (result.success) {
+            Alert.alert('Success', `Role updated to ${role}`);
+            setSelectedRole(role);
+            setShowRoleModal(false);
+            fetchUser();
+        } else {
+            Alert.alert('Error', 'Failed to update role: ' + result.error);
+        }
+    };
+
+    const handleUpdateName = async () => {
+        if (!firstNameInput.trim() || !lastNameInput.trim()) {
+            Alert.alert('Error', 'First and last name required');
+            return;
+        }
+        const updatedData = {
+            first_name: firstNameInput.trim(),
+            last_name: lastNameInput.trim(),
+            name: `${firstNameInput.trim()} ${lastNameInput.trim()}`
+        };
+        const result = await UserService.updateUserProfile(uid, updatedData);
+        if (result.success) {
+            Alert.alert('Success', 'Name updated!');
+            setIsEditingName(false);
+            fetchUser();
+        } else {
+            Alert.alert('Error', 'Failed to update name: ' + result.error);
+        }
+    };
+
+    const handleUpdateClass = async (newClass) => {
+        if (userProfile?.class === newClass) return;
+        Alert.alert(
+            'Change Class',
+            `Change class to ${newClass}?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Change',
+                    onPress: async () => {
+                        const result = await UserService.updateUserProfile(uid, { class: newClass });
+                        if (result.success) {
+                            Alert.alert('Success', `Class changed to ${newClass}`);
+                            if (user.uid === uid) {
+                                updateAuthContext({ class: newClass });
+                            }
+                            fetchUser();
+                        } else {
+                            Alert.alert('Error', 'Failed: ' + result.error);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleSetNewPassword = async () => {
+        if (!newPassword || !confirmPassword) {
+            return Alert.alert('Error', 'Please fill all fields');
+        }
+        if (newPassword !== confirmPassword) {
+            return Alert.alert('Error', 'Passwords do not match');
+        }
+        const result = await UserService.setUserPassword(uid, newPassword);
+        if (result.success) {
+            Alert.alert('Success', 'Password updated!');
+            setShowPasswordModal(false);
+        } else {
+            Alert.alert('Error', result.error || 'Failed to update password');
+        }
+    };
+
+    const handlePickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaType.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+            if (!result.canceled) {
+                setLoading(true);
+                const uploadResult = await uploadImageAsync(result.assets[0].uri);
+                if (uploadResult && uploadResult.url) {
+                    const updateResult = await UserService.updateUserProfile(uid, { photo_url: uploadResult.url });
+                    if (updateResult.success) {
+                        Alert.alert('Success', 'Photo updated!');
+                        fetchUser();
+                    } else {
+                        Alert.alert('Error', 'Failed to update profile: ' + updateResult.error);
+                    }
+                } else {
+                    Alert.alert('Error', 'Failed to upload image');
+                }
+                setLoading(false);
+            }
+        } catch (error) {
+            console.error('PickImage Error:', error);
+            setLoading(false);
+            Alert.alert('Error', 'Failed: ' + error.message);
+        }
+    };
+
+    const handleDeleteUser = () => {
+        Alert.alert(
+            'Delete User',
+            `Delete "${userProfile?.name}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        const result = await UserService.deleteUser(uid);
+                        if (result.success) {
+                            Alert.alert('Success', 'User deleted!');
+                            navigation.goBack();
+                        } else {
+                            Alert.alert('Error', result.error || 'Failed to delete');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleApproveUser = () => {
+        Alert.alert(
+            'Approve User',
+            `Approve "${userProfile?.name}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Approve',
+                    onPress: async () => {
+                        const result = await UserService.approveUser(uid);
+                        if (result.success) {
+                            Alert.alert('Success', 'User approved!');
+                            fetchUser();
+                        } else {
+                            Alert.alert('Error', result.error || 'Failed to approve');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={styles.loadingText}
