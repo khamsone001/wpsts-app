@@ -43,10 +43,6 @@ export const UserService = {
             throw error;
         }
     },
-        }
-    },
-        }
-    },
 
     getAllUsers: async () => {
         try {
